@@ -1064,6 +1064,7 @@ let state = {
   ttsPlaying: false,
   ttsVerseIdx: 0,
   ttsUtterance: null,
+  wakeLock: null,
   sidebarOpen: true,
   searchOpen: false,
   selectedVerses: new Set(),
@@ -1939,10 +1940,38 @@ function getVerses() {
   return state.bibleData[state.bookIdx].chapters[state.chapterIdx] || [];
 }
 
+// ──────────────────────────────────────────────
+// SCREEN WAKE LOCK — keep screen on during TTS
+// ──────────────────────────────────────────────
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  if (state.wakeLock) return;
+  try {
+    state.wakeLock = await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+  } catch {}
+}
+
+async function releaseWakeLock() {
+  if (!state.wakeLock) return;
+  const lock = state.wakeLock;
+  state.wakeLock = null;
+  try { await lock.release(); } catch {}
+}
+
+// Browser auto-releases the lock when the tab is hidden — re-acquire on return
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.ttsPlaying) {
+    acquireWakeLock();
+  }
+});
+
 function startTTS() {
   const verses = getVerses();
   if (!verses.length) return;
   if (state.ttsVerseIdx >= verses.length) state.ttsVerseIdx = 0;
+
+  acquireWakeLock();
 
   const text = verses[state.ttsVerseIdx];
   const u = new SpeechSynthesisUtterance(text);
@@ -1971,6 +2000,7 @@ function startTTS() {
       state.ttsVerseIdx = 0;
       updateTTSProgress(0, verses.length);
       highlightTTSVerse(-1);
+      releaseWakeLock();
     }
   };
 
@@ -1989,6 +2019,7 @@ function pauseTTS() {
   synth.cancel();
   state.ttsPlaying = false;
   ttsPlay.textContent = '▶';
+  releaseWakeLock();
 }
 
 function stopTTS() {
@@ -1996,6 +2027,7 @@ function stopTTS() {
   state.ttsPlaying = false;
   ttsPlay.textContent = '▶';
   highlightTTSVerse(-1);
+  releaseWakeLock();
 }
 
 function advanceTTS() {

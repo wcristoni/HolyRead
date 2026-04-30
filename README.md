@@ -1,488 +1,423 @@
-# HolyRead — Bíblia
+# HolyRead — V1
 
-> App de leitura bíblica moderno, responsivo e multilíngue. MVP desenvolvido para validar a experiência de leitura antes de ser integrado ao ecossistema **HolyPleiiiz**.
+> Leitor bíblico multilíngue com **estudo no original** (Hebraico / Grego).
+> Frontend estático + backend FastAPI publicáveis separadamente.
 
 ---
 
 ## Sumário
 
-1. [Visão geral](#visão-geral)
-2. [Funcionalidades](#funcionalidades)
-3. [Arquitetura](#arquitetura)
-4. [Dados](#dados)
-5. [Rodando localmente](#rodando-localmente)
-6. [Publicação na Internet](#publicação-na-internet)
-   - [GitHub Pages (gratuito, recomendado para MVP)](#opção-1-github-pages--gratuito)
-   - [Netlify (gratuito, CI/CD automático)](#opção-2-netlify--gratuito)
-   - [Vercel (gratuito, CDN global)](#opção-3-vercel--gratuito)
-   - [Cloudflare Pages (melhor performance global)](#opção-4-cloudflare-pages--gratuito)
-   - [Servidor próprio / VPS (produção avançada)](#opção-5-servidor-próprio--vps)
-7. [Estratégia de cache e performance](#estratégia-de-cache-e-performance)
-8. [Roadmap de integração com HolyPleiiiz](#roadmap-de-integração-com-holypleiiiz)
-9. [Variáveis e configurações](#variáveis-e-configurações)
-10. [Estrutura de pastas](#estrutura-de-pastas)
+1. [Visão geral V1](#visão-geral-v1)
+2. [Arquitetura](#arquitetura)
+3. [Dados e licenças](#dados-e-licenças)
+4. [Rodando localmente](#rodando-localmente)
+5. [QR code para celular na rede local](#qr-code-para-celular-na-rede-local)
+6. [Pipeline de ETL (originais)](#pipeline-de-etl-originais)
+7. [Endpoints da API](#endpoints-da-api)
+8. [Deploy](#deploy)
+9. [Estrutura de pastas](#estrutura-de-pastas)
+10. [Roadmap](#roadmap)
 
 ---
 
-## Visão geral
+## Visão geral V1
 
-HolyRead é um app de leitura bíblica **100% client-side** — não há backend, banco de dados ou servidor de aplicação. Todo o processamento acontece no navegador do usuário.
+A V0 (MVP) era um único `index.html` que carregava JSONs estáticos. A V1 separa as responsabilidades:
 
-Isso significa:
+- **Backend** (`backend/`) — FastAPI em Python servindo as Bíblias e os textos no original (Hebraico/Grego) com palavra-por-palavra (lema, Strong's, morfologia, transliteração).
+- **Frontend** (`frontend/`) — site estático que consome a API. Todas as features da V0 mais um módulo novo: **📜 Original**.
+- **Segurança** — CORS allowlist, rate-limit por IP, security headers. HTTPS obrigatório em produção (Railway provê).
+- **Persistência local** — preferências e progresso ainda em `localStorage`. Sincronização com MongoDB ficou para V2.
 
-- **Custo de hospedagem próximo de zero** (qualquer CDN estático serve)
-- **Sem dados de usuário armazenados em servidor** (preferências ficam no `localStorage`)
-- **Offline parcial possível** via Service Worker (próxima versão)
-- **Escala infinita** sem custo adicional (o CDN absorve qualquer número de usuários)
+### Novidade: módulo "Original"
 
----
+Tocando num versículo do AT, o botão **📜 Original** abre um *bottom sheet* com:
 
-## Funcionalidades
+- Texto hebraico apontado (RTL, com cantilação preservada)
+- Palavra a palavra: forma original → transliteração → morfemas (prefixo / raiz) → Strong's → morfologia
+- 🔊 Pronúncia em hebraico (Web Speech API, voz `he-IL`)
 
-| Funcionalidade | Detalhe |
-|---|---|
-| 7 versões bíblicas | NVI, AA, ACF (PT) · KJV, BBE (EN) · RVR (ES) · APEE (FR) |
-| Dark / Light mode | Tema salvo por usuário |
-| Tamanho de fonte | Slider 12–26 px, salvo por usuário |
-| Navegação por livro | Sidebar com filtro, separação AT/NT |
-| Navegação por capítulo | Pills clicáveis, swipe mobile |
-| Busca inteligente | Referência (`João 3:16`) + texto livre |
-| Seleção e compartilhamento | Multi-versículo → WhatsApp, Twitter, Facebook, Copiar |
-| Text-to-Speech | Vozes do sistema com auto-seleção da melhor qualidade |
-| Seletor de voz | Lista todas as vozes disponíveis no idioma, ranqueadas |
-| Velocidade de leitura | 0.75×, 1×, 1.25×, 1.5× |
-| Progresso salvo | Última posição (livro + capítulo) no `localStorage` |
-| Atalhos de teclado | `←/→` capítulo anterior/próximo · `/` abre busca · `Esc` fecha painéis |
+No NT: o mesmo, com texto grego, lema, morfologia e **toggle Erasmiana / Moderna** afetando transliteração e pronúncia.
 
 ---
 
 ## Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Navegador do Usuário                        │
-│                                                                     │
-│  ┌─────────────┐   fetch()    ┌───────────────────────────────────┐ │
-│  │  index.html │ ──────────▶  │  data/{versao}.json               │ │
-│  │  (app SPA)  │             │  ~4 MB por versão, carregado      │ │
-│  │             │             │  sob demanda e cacheado em RAM     │ │
-│  │  CSS inline │◀─────────── │                                   │ │
-│  │  JS inline  │  resposta   └───────────────────────────────────┘ │
-│  └─────────────┘                                                    │
-│         │                                                           │
-│         │  localStorage                                             │
-│         ▼                                                           │
-│  ┌──────────────────────────────────────────┐                      │
-│  │  holyread_prefs                          │                      │
-│  │  { version, bookIdx, chapterIdx,         │                      │
-│  │    theme, fontSize }                     │                      │
-│  └──────────────────────────────────────────┘                      │
-│                                                                     │
-│         │  Web Speech API (SpeechSynthesis)                        │
-│         ▼                                                           │
-│  ┌──────────────────────────────────────────┐                      │
-│  │  Sistema Operacional / Browser           │                      │
-│  │  (vozes TTS nativas + Google voices)     │                      │
-│  └──────────────────────────────────────────┘                      │
-└─────────────────────────────────────────────────────────────────────┘
-                              │
-                              │  HTTPS
-                              ▼
-              ┌───────────────────────────────┐
-              │   CDN / Hospedagem Estática   │
-              │  (GitHub Pages / Netlify /    │
-              │   Vercel / Cloudflare Pages)  │
-              └───────────────────────────────┘
+┌─────────────────────────┐         ┌──────────────────────────────────┐
+│ Frontend (estático)     │         │ Backend (FastAPI / Railway)      │
+│  - index.html           │  HTTPS  │  /api/bible/...    Bíblias       │
+│  - assets/api.js  ──────┼────────►│  /api/original/he/...  Hebraico  │
+│  - config.js (API_BASE) │  CORS   │  /api/original/grc/... Grego     │
+│ Hospedagem: Pages /     │ allow + │  Rate-limit / security headers   │
+│ Render / Usevelty       │ rate    │  Dados em data/ (JSON pré-ETL)   │
+└─────────────────────────┘         └──────────────────────────────────┘
 ```
 
-### Decisões de design
-
-**Por que um único arquivo HTML?**
-Para o MVP, um `index.html` com CSS e JS embutidos elimina build steps, bundlers e configuração. O código é revisável diretamente no browser. A única dependência externa é a fonte Google Inter+Lora (opcional — o app funciona com system fonts se offline).
-
-**Por que os JSONs ficam fora do HTML?**
-Cada versão tem ~4 MB. Embutir todas as 7 versões criaria um arquivo de ~28 MB, tornando o carregamento inicial inaceitável. O app carrega apenas a versão selecionada, sob demanda, e mantém um cache em memória (`state.cache`) para não refazer o fetch em trocas de versão.
-
-**Por que não há backend?**
-Para este MVP não há necessidade de autenticação, sincronização entre dispositivos ou dados personalizados. O `localStorage` é suficiente para persistir preferências locais. Quando a integração com HolyPleiiiz exigir accounts compartilhados, um backend (ver roadmap) será adicionado.
-
-### Fluxo de dados
-
-```
-Usuário seleciona versão
-        │
-        ▼
-loadVersion(version)
-  ├── hit: state.cache[version] → retorna imediato
-  └── miss: fetch data/{version}.json
-              │
-              ▼
-           JSON.parse (remove BOM se presente)
-              │
-              ▼
-        state.cache[version] = data   ← fica em RAM até reload
-              │
-              ▼
-        renderBookList()
-        renderChapterPills()
-        renderChapter()
-              │
-              ▼
-        DOM: div.verse-block por versículo
-        (clique → seleção/compartilhamento)
-        (TTS → Web Speech API com melhor voz disponível)
-```
-
-### Módulo de Vozes TTS
-
-A Web Speech API expõe vozes heterogêneas em qualidade. O app aplica um ranqueamento automático:
-
-| Pontuação | Critério | Exemplo |
-|---|---|---|
-| 5 | Google Neural / WaveNet | "Google português do Brasil" (Chrome) |
-| 4 | Google standard | "Google US English" |
-| 3 | Enhanced / Premium / Siri | "Luciana Enhanced" (Safari macOS) |
-| 2 | Voz cloud (não local) | Vozes de servidores do browser |
-| 1 | Voz local padrão | "Luciana" (macOS system) |
-
-A melhor voz disponível para o idioma atual é pré-selecionada. O usuário pode trocar pelo seletor na barra de TTS.
+- **Frontend** é puro HTML/CSS/JS — nenhum build step. Pode ser publicado em qualquer CDN estática.
+- **Backend** roda em qualquer host com Docker. `railway.toml` está pronto.
+- Todo dado é JSON estático em `backend/data/` — nada de banco. Os arquivos são gerados uma vez via ETL e versionados (ou montados num volume).
 
 ---
 
-## Dados
+## Dados e licenças
+
+### Bíblias (frontend MVP)
+
+7 traduções já existentes de domínio público / livre uso (`backend/data/bible/*.json`). Mantidas como estavam na V0.
+
+### Hebraico — `openscriptures/morphhb` (WLC)
+
+- **Licença**: CC BY 4.0 — uso comercial OK.
+- **Conteúdo**: Westminster Leningrad Codex pontuado, com lemma (Strong's hebraico) e morfologia OSHM.
+- **Versificação**: massorética; mapeada para a numeração protestante via `wlc/VerseMap.xml`.
+- **Transliteração**: gerada por nós (`backend/scripts/translit_he.py`, esquema SBL simplificado).
+
+### Grego — `morphgnt/sblgnt`
+
+- **Texto SBLGNT**: CC BY 4.0 (Faithlife). Atribuição requerida.
+- **Análise morfológica MorphGNT**: **CC BY-SA 3.0** — derivados redistribuídos precisam manter a mesma licença.
+- **Transliteração**: gerada por nós (`backend/scripts/translit_grc.py`, esquemas Erasmiana e Moderna).
+
+### Glossas (literal por palavra) — STEPBible TBESH/TBESG
+
+- `Lexicons/TBESH ... CC BY.txt` (Hebraico)
+- `Lexicons/TBESG ... CC BY.txt` (Grego)
+- **Licença**: CC BY 4.0 (Tyndale House Cambridge — usamos somente a coluna `Gloss`, autoria Tyndale; a coluna `Meaning` vem do BDB Online Bible com restrições próprias e **não** é usada).
+- Cobertura: ~99% das palavras do NT, ~95% das raízes do AT.
+
+### Glossas em múltiplos idiomas
+
+As glossas EN são **traduzidas para PT/ES/FR** localmente via `deep-translator` (Google Translate gratuito), com cache idempotente. A API serve a glossa no idioma ativo do app:
 
 ```
-data/
-├── pt_nvi.json   # Nova Versão Internacional  — 66 livros, 31.105 versículos, 3,9 MB
-├── pt_aa.json    # Almeida Atualizada          — 66 livros, 31.104 versículos, 3,9 MB
-├── pt_acf.json   # Almeida Corrigida Fiel      — 66 livros, 31.106 versículos, 3,9 MB
-├── en_kjv.json   # King James Version          — 66 livros, 31.100 versículos, 4,4 MB
-├── en_bbe.json   # Bible in Basic English      — 66 livros, 31.104 versículos, 4,2 MB
-├── es_rvr.json   # Reina-Valera Revisada       — 66 livros, 31.102 versículos, 3,9 MB
-└── fr_apee.json  # Alliance Permanente (FR)    — 66 livros, 30.975 versículos, 4,3 MB
+GET /api/original/hebrew/0/0/0?lang=pt    → glossas em português
+GET /api/original/greek/42/2/15?lang=es   → glossas em espanhol
 ```
 
-**Formato de cada arquivo:**
+Estrutura em disco:
 
-```json
-[
-  {
-    "abbrev": "gn",
-    "chapters": [
-      ["No princípio Deus criou os céus e a terra.", "Era a terra sem forma..."],
-      ["Adão conheceu sua mulher Eva..."]
-    ]
-  },
-  ...
-]
+```
+data/glosses/
+  en/he.json   en/grc.json   ← gerado pelo import_glosses.py
+  pt/he.json   pt/grc.json   ← gerado pelo translate_glosses.py
+  es/...       fr/...
+  _cache/      ← {en→target} translation cache (resume-friendly)
 ```
 
-- Array raiz: 66 livros (Gênesis → Apocalipse, mesma ordem em todas as versões)
-- Mapeamento de livro: **por índice** (0–65), não por `abbrev` — as abreviações diferem entre versões
-- Encoding: UTF-8 com BOM (`﻿`) — o app remove automaticamente no browser
+Tradução automatizada é "boa o suficiente" pra estudo (qualidade Google Translate 1-3 palavras, ~95% acurácia em termos bíblicos comuns). Refinamento manual fica pra V2.
+
+### Lemma → Strong's (grego) — `openscriptures/strongs`
+
+MorphGNT não carrega número Strong's; apenas o lemma. Construímos o reverso a partir de `greek/strongs-greek-dictionary.js` do `openscriptures/strongs` (texto base 1890 = domínio público; embalagem JSON CC-BY-SA).
+
+> **Decisão deliberada**: `eliranwong/OpenHebrewBible` (CC BY-NC) **não é usado** — bloqueia uso comercial. O `morphhb` cobre tudo o que precisamos e é mais permissivo.
+
+### Atribuição exibida no app
+
+Ao abrir o sheet "📜 Original":
+
+- AT: `Texto: WLC (morphhb, CC BY 4.0) · Glossa: STEPBible TBESH (CC BY 4.0)`
+- NT: `Texto: SBLGNT (CC BY 4.0) · Morf: MorphGNT (CC BY-SA 3.0) · Glossa: TBESG (CC BY 4.0)`
 
 ---
 
 ## Rodando localmente
 
-**Pré-requisito:** Python 3 (qualquer versão) ou Node.js
+### Pré-requisitos
+
+- Python 3.11+ (`python3 --version`)
+- Mac/Linux: terminal padrão. Windows: WSL.
+
+### 1) Setup (uma vez só)
 
 ```bash
-# Clone ou baixe o projeto
-cd holypleiiiz-bible
+# do diretório raiz do repo
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -e '.[etl]'        # runtime + ETL deps
 
-# Python 3
-python3 -m http.server 8080
+# 1. baixa as glossas Strong's em inglês (TBESH/TBESG, ~30 s)
+.venv/bin/python scripts/import_glosses.py
 
-# Node.js (sem instalar nada)
-npx serve . -p 8080
+# 2. (opcional) traduz as glossas EN→PT/ES/FR via Google Translate gratuito
+#    (~12 min total, idempotente — pode rodar em background depois)
+.venv/bin/pip install deep-translator
+.venv/bin/python scripts/translate_glosses.py
 
-# Node.js com http-server global
-npx http-server -p 8080
+# 3. baixa hebraico (morphhb) + grego (MorphGNT) e gera JSONs por livro (~2 min)
+.venv/bin/python scripts/import_hebrew.py
+.venv/bin/python scripts/import_greek.py
+cd ..
 ```
 
-Acesse: **http://localhost:8080**
+Pronto. Os JSONs ficam em `backend/data/{hebrew,greek}/NN.json` (versionar opcional).
 
-> O app **não funciona** via `file://` porque o `fetch()` dos JSONs é bloqueado pelo browser por política de CORS. É necessário um servidor HTTP, mesmo que local.
+### 2) Subir o serviço — caminho recomendado
+
+```bash
+./scripts/dev.sh
+```
+
+O script:
+
+- detecta o IP da sua rede local
+- sobe **backend** em `0.0.0.0:8000` (FastAPI com `--reload`)
+- sobe **frontend** em `0.0.0.0:8080` (estático)
+- imprime um **QR code ASCII** no terminal apontando pro frontend
+- aceita qualquer origem da LAN automaticamente (CORS dev mode)
+
+Aponte a câmera do celular (mesma WiFi) → app abre direto.
+Pelo Mac, acesse `http://localhost:8080`.
+
+### 2-alt) Subir manualmente — dois terminais
+
+**Terminal 1 — backend** (de dentro de `backend/`):
+
+```bash
+cd backend
+.venv/bin/python run.py
+```
+
+> `run.py` é um wrapper que já liga uvicorn em `0.0.0.0:8000` por padrão.
+> Se preferir o uvicorn direto: `.venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000` — **o `--host 0.0.0.0` é obrigatório** se você quer acessar do celular ou outro device da rede.
+
+**Terminal 2 — frontend** (do diretório raiz):
+
+```bash
+python3 -m http.server -d frontend 8080
+```
+
+Acessar:
+
+- **Mac**: `http://localhost:8080`
+- **Celular** (mesma WiFi): descubra seu IP com `ipconfig getifaddr en0` e abra `http://<IP>:8080`
+
+### Verificação rápida
+
+```bash
+# backend respondendo?
+curl http://localhost:8000/healthz
+# {"status":"ok"}
+
+# Bíblia carrega?
+curl http://localhost:8000/api/bible/versions
+
+# Hebraico Gn 1:1?
+curl http://localhost:8000/api/original/hebrew/0/0/0
+```
+
+Se algum desses falhar, pule pro Troubleshooting abaixo.
+
+### Troubleshooting
+
+| Erro no app | Causa provável | Solução |
+|---|---|---|
+| "Erro ao carregar versão. Verifique conexão / backend." | Backend não está rodando, ou só em `127.0.0.1`. | Confirme que rodou `python run.py` (não `uvicorn ... --port 8000` sem `--host`). Cheque `curl http://<seu-IP>:8000/healthz`. |
+| Funciona em `localhost` mas não no celular | Backend em `127.0.0.1` only | Use `python run.py` (já em `0.0.0.0`) ou adicione `--host 0.0.0.0` ao `uvicorn`. |
+| `Address already in use` | Porta 8000/8080 ocupada | `lsof -nP -iTCP:8000 -sTCP:LISTEN` → mate o processo, ou exporte `PORT=9000` antes de `python run.py`. |
+| CORS error no console | `.env` com `ALLOWED_ORIGINS=` antigo restritivo | Apague `backend/.env` (modo dev libera LAN automaticamente quando vazio). |
+| Página em branco no celular | DNS local não resolve | Use o IP cru (não `.local` se o nome não resolver). |
+
+### Variáveis de ambiente (opcional)
+
+Crie `backend/.env` apenas se quiser sobrescrever os defaults dev:
+
+```ini
+# Produção: liste explicitamente as origens permitidas
+ALLOWED_ORIGINS=https://holyread.example.com,https://staging.holyread.example.com
+
+# Ou use regex para padrões (ex: subdomínios)
+ALLOWED_ORIGIN_REGEX=^https://.*\.example\.com$
+
+# Rate limit (defaults: 120/min geral, 20/min busca)
+RATE_LIMIT_DEFAULT=120/minute
+RATE_LIMIT_SEARCH=20/minute
+
+# Bind
+HOST=0.0.0.0
+PORT=8000
+```
+
+Em **dev**, deixe `.env` inexistente. O código já libera localhost + LANs privadas (`10.*`, `172.16-31.*`, `192.168.*`, `*.local`) em qualquer porta.
 
 ---
 
-## Publicação na Internet
+## QR code para celular na rede local
 
-O projeto é **100% estático** — qualquer serviço de hospedagem de arquivos estáticos funciona. Abaixo as opções em ordem de recomendação para cada perfil.
+`scripts/dev.sh` imprime um QR ASCII no terminal apontando pra `http://<seu-IP-LAN>:8080`. Aponte a câmera do celular (mesma WiFi) — abre direto no Safari/Chrome móvel. O `frontend/config.js` detecta automaticamente o IP da LAN no `hostname` e configura `API_BASE` pro backend correto, sem mexer em variáveis.
 
----
-
-### Opção 1: GitHub Pages — Gratuito
-
-Ideal para: MVP rápido, repositório já no GitHub.
-
-```bash
-# 1. Crie o repositório no GitHub
-git init
-git add .
-git commit -m "feat: HolyRead MVP"
-git remote add origin https://github.com/SEU_USUARIO/holyread.git
-git push -u origin main
-
-# 2. Ative GitHub Pages
-# GitHub → Settings → Pages → Branch: main → Folder: / (root) → Save
-```
-
-URL resultante: `https://SEU_USUARIO.github.io/holyread`
-
-**Limitação:** arquivos até 100 MB por arquivo, 1 GB por repositório (os JSONs somam ~28 MB, dentro do limite). Sem CDN geográfico avançado — latência maior fora do datacenter do GitHub (EUA).
+Sem internet: nada disso usa Cloudflare/ngrok — a app fica 100% na sua rede local.
 
 ---
 
-### Opção 2: Netlify — Gratuito
+## Pipeline de ETL (originais)
 
-Ideal para: deploy automático a cada `git push`, previews de PR, domínio próprio.
-
-```bash
-# Via CLI
-npm install -g netlify-cli
-netlify login
-netlify deploy --dir . --prod
+```
+                                ┌──────────────────────────┐
+   morphhb wlc/*.xml  ─────────►│ scripts/import_hebrew.py │── data/hebrew/NN.json
+   morphhb wlc/VerseMap.xml ───►│  · OSIS XML → palavras    │
+                                │  · WLC→KJV remap          │
+                                │  · transliteração SBL     │
+                                └──────────────────────────┘
+                                ┌──────────────────────────┐
+   morphgnt 61-Mt..87-Re.txt ──►│ scripts/import_greek.py  │── data/greek/NN.json
+                                │  · 7-col plain → JSON     │
+                                │  · translit. Erasm/Mod    │
+                                └──────────────────────────┘
 ```
 
-Ou arraste a pasta para **app.netlify.com/drop**.
+Schema saída (Hebraico):
 
-**Configuração recomendada** — crie `netlify.toml` na raiz:
-
-```toml
-[build]
-  publish = "."
-
-[[headers]]
-  for = "/data/*.json"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Content-Encoding = "gzip"
-
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-```
-
-URL resultante: `https://nome-aleatorio.netlify.app` (personalizável gratuitamente)
-
----
-
-### Opção 3: Vercel — Gratuito
-
-Ideal para: integração futura com Next.js / API routes quando o backend for necessário.
-
-```bash
-npm install -g vercel
-vercel login
-vercel --prod
-```
-
-**Configuração** — crie `vercel.json`:
-
-```json
+```jsonc
 {
-  "headers": [
-    {
-      "source": "/data/(.*).json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" },
-        { "key": "Content-Type", "value": "application/json; charset=utf-8" }
-      ]
-    }
+  "book": 0, "osis": "Gen",
+  "chapters": [
+    [
+      {
+        "text": "בראשית ברא ...",
+        "words": [
+          {
+            "text": "בְּרֵאשִׁית",
+            "translit": "bəreʾshiyt",
+            "morphemes": [
+              { "text": "בְּ", "lemma": "b",    "morph": "R"     },
+              { "text": "רֵאשִׁית", "lemma": "7225", "morph": "Ncfsa" }
+            ]
+          }
+        ]
+      }
+    ]
   ]
 }
 ```
 
-URL resultante: `https://holyread.vercel.app`
+Schema saída (Grego):
 
----
-
-### Opção 4: Cloudflare Pages — Gratuito
-
-Ideal para: melhor latência global (rede Cloudflare em 300+ cidades), futura integração com Cloudflare Workers (lógica serverless) e D1 (banco de dados edge).
-
-```bash
-# Via CLI
-npm install -g wrangler
-wrangler pages deploy . --project-name holyread
-```
-
-Ou conecte o repositório GitHub em **pages.cloudflare.com**.
-
-**Por que Cloudflare para produção?**
-- Os JSONs (~4 MB cada) são cacheados na borda da rede mais próxima do usuário
-- Brasil tem PoPs em São Paulo, Rio de Janeiro e Fortaleza — latência < 20ms para usuários brasileiros
-- Cloudflare Workers permite adicionar lógica serverless (ex.: analytics, autenticação JWT) sem mudar a arquitetura estática
-- Integração natural com Cloudflare D1 (SQLite na borda) para dados de usuário futuros
-
----
-
-### Opção 5: Servidor próprio / VPS
-
-Para quando precisar de backend completo (integração com HolyPleiiiz, autenticação, banco de dados).
-
-**Stack recomendada:**
-
-```
-Internet
-    │
-    ▼
-Cloudflare (proxy + WAF + DDoS)
-    │
-    ▼
-Nginx (reverse proxy + TLS + gzip + cache headers)
-    │
-    ├── /              → arquivos estáticos (index.html + data/*.json)
-    └── /api/v1/       → backend HolyPleiiiz (Node.js / FastAPI)
-```
-
-**Configuração Nginx mínima:**
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name holyread.com.br;
-
-    ssl_certificate     /etc/letsencrypt/live/holyread.com.br/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/holyread.com.br/privkey.pem;
-
-    root /var/www/holyread;
-    index index.html;
-
-    # Cache agressivo para os JSONs (imutáveis)
-    location /data/ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        gzip_static on;
-    }
-
-    # HTML: cache curto para receber atualizações
-    location / {
-        try_files $uri $uri/ /index.html;
-        expires 1h;
-        add_header Cache-Control "public, must-revalidate";
-    }
-}
-```
-
-**Compressão dos JSONs (economiza ~70% de banda):**
-
-```bash
-# Pré-comprimir os JSONs para Nginx gzip_static
-for f in data/*.json; do
-  gzip -9 -k "$f"
-done
-# Gera: data/pt_nvi.json.gz (~1.1 MB em vez de 3.9 MB)
-```
-
----
-
-## Estratégia de cache e performance
-
-Os arquivos JSON são o maior custo de carregamento (~4 MB por versão). A estratégia de cache em camadas elimina esse custo para usuários recorrentes:
-
-```
-Requisição do usuário
-        │
-        ▼
-┌───────────────────┐
-│  Cache em RAM     │  state.cache  ← instante (já carregado nesta sessão)
-│  (JavaScript)     │
-└────────┬──────────┘
-         │ miss
-         ▼
-┌───────────────────┐
-│  Cache do browser │  HTTP Cache-Control  ← < 10ms se em disco
-│  (disco local)    │
-└────────┬──────────┘
-         │ miss
-         ▼
-┌───────────────────┐
-│  CDN Edge         │  PoP mais próximo  ← 20–100ms (Brasil)
-└────────┬──────────┘
-         │ miss
-         ▼
-┌───────────────────┐
-│  Servidor origem  │  ~200–500ms (primeira vez)
-└───────────────────┘
-```
-
-**Headers recomendados para os JSONs:**
-```
-Cache-Control: public, max-age=31536000, immutable
-Content-Encoding: gzip
-ETag: "<hash-do-arquivo>"
-```
-
-Os JSONs são dados estáticos (o texto bíblico não muda). `immutable` informa ao browser que nunca precisa revalidar — zero requisições de rede para versões já visitadas.
-
----
-
-## Roadmap de integração com HolyPleiiiz
-
-```
-Fase 1 — MVP atual (✅ concluído)
-  └── HolyRead standalone: leitura, busca, TTS, compartilhamento
-
-Fase 2 — Unificação de identidade
-  ├── Login único (OAuth Google / Apple)
-  ├── Progresso de leitura sincronizado em nuvem
-  └── Backend: Node.js + PostgreSQL ou Firebase
-
-Fase 3 — Integração com Quiz
-  ├── Botão "Testar sobre este capítulo" → HolyPleiiiz Quiz
-  ├── Plano de leitura vinculado a trilhas do quiz
-  └── Compartilhamento de conquistas
-
-Fase 4 — Features avançadas
-  ├── Destaques e notas pessoais (sincronizados)
-  ├── Modo offline completo (Service Worker + Cache API)
-  ├── Planos de leitura (ex.: Bíblia em 1 ano)
-  └── Versão PWA instalável (manifest.json)
-```
-
-**Sugestão de arquitetura unificada (Fase 2):**
-
-```
-holyread.com.br          → HolyRead (este app)
-holypleiiiz.com.br/quiz  → Quiz existente
-holypleiiiz.com.br/api   → API compartilhada (auth, progresso, usuários)
-
-ou
-
-app.holypleiiiz.com.br/
-  ├── /read   → HolyRead
-  └── /quiz   → HolyPleiiiz Quiz
-```
-
----
-
-## Variáveis e configurações
-
-Todas as configurações ficam no início do script em `index.html`:
-
-| Constante | Descrição |
-|---|---|
-| `BOOK_NAMES` | Nomes dos 66 livros em PT, EN, ES, FR |
-| `VERSION_LANG` | Mapeamento versão → idioma (`pt_nvi → 'pt'`) |
-| `VERSION_LABEL` | Labels curtos exibidos na UI (`pt_nvi → 'NVI'`) |
-| `TTS_LANG` | Código BCP-47 por idioma (`pt → 'pt-BR'`) |
-| `OT_END` | Índice do último livro do AT (38 = Malaquias) |
-
-**Preferências do usuário** (salvas em `localStorage` como `holyread_prefs`):
-
-```json
+```jsonc
 {
-  "version": "pt_nvi",
-  "bookIdx": 42,
-  "chapterIdx": 2,
-  "theme": "dark",
-  "fontSize": 19
+  "book": 39, "osis": "Matt",
+  "chapters": [
+    [
+      {
+        "text": "Βίβλος γενέσεως ...",
+        "words": [
+          {
+            "text": "Βίβλος", "lemma": "βίβλος", "morph": "N- ----NSF-",
+            "translit_eras": "biblos", "translit_mod": "vivlos"
+          }
+        ]
+      }
+    ]
+  ]
 }
 ```
+
+---
+
+## Endpoints da API
+
+| Método | Path | Resposta |
+|---|---|---|
+| GET | `/healthz` | `{"status":"ok"}` |
+| GET | `/api/bible/versions` | lista de códigos |
+| GET | `/api/bible/{version}` | Bíblia inteira (66 livros) |
+| GET | `/api/bible/{version}/{book}/{chapter}` | versículos de um capítulo |
+| GET | `/api/bible/{version}/search?q=…&limit=…` | full-text search (rate limit menor) |
+| GET | `/api/original/hebrew/{book}/{chapter}/{verse}` | versículo hebraico + palavras |
+| GET | `/api/original/greek/{book}/{chapter}/{verse}` | versículo grego + palavras |
+
+`{book}`, `{chapter}`, `{verse}` são 0-indexed na ordem canônica (0 = Gênesis, 38 = Malaquias, 39 = Mateus, 65 = Apocalipse).
+
+Documentação interativa em `/docs` (Swagger UI).
+
+---
+
+## Deploy
+
+### A V1 não roda inteira no GitHub Pages
+
+> **GitHub Pages só serve estático.** Nosso backend é Python/FastAPI — precisa de um host com runtime. Pages só cobre o **frontend**, e mesmo assim depende do backend estar publicado em outra plataforma com `API_BASE` apontando pra ele.
+
+Resumo dos componentes:
+
+| Componente | Onde rodar | Por quê |
+|---|---|---|
+| **Backend** (`backend/`) | Railway · Render · Fly.io · Heroku · qualquer Docker | precisa Python 3.11 + FastAPI |
+| **Frontend** (`frontend/`) | GitHub Pages · Netlify · Cloudflare Pages · Render · Usevelty · qualquer CDN | só HTML/CSS/JS estático |
+
+**Sequência obrigatória**: 1) deploy backend → 2) atualiza `frontend/config.js` com a URL do backend → 3) deploy frontend.
+
+### Passo 1 — Backend no Railway
+
+```bash
+cd backend
+railway login
+railway init        # cria o serviço
+railway up          # build via Dockerfile.  Railway gera URL pública
+```
+
+Variáveis de ambiente no painel do Railway:
+
+| Variável | Valor |
+|---|---|
+| `ALLOWED_ORIGINS` | `https://wcristoni.github.io` (origem do Pages — sem path) |
+| `RATE_LIMIT_DEFAULT` | `120/minute` (default) |
+| `RATE_LIMIT_SEARCH` | `20/minute` (default) |
+
+`railway.toml` já configura healthcheck em `/healthz`. O `Dockerfile` copia `backend/data/` (~95 MB de JSONs de Bíblias + Hebraico + Grego + glossas) pro container.
+
+Após o deploy: anote a URL gerada (algo como `https://holyread-api-production.up.railway.app`).
+
+### Passo 2 — Apontar o frontend pro backend
+
+Edite `frontend/config.js`:
+
+```js
+window.HOLYREAD_CONFIG = {
+  API_BASE: (() => {
+    const { protocol, hostname } = window.location;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+      return `${protocol}//${hostname}:8000`;
+    }
+    return 'https://holyread-api-production.up.railway.app';   // ← cole aqui
+  })(),
+};
+```
+
+A função detecta dev local automaticamente; em prod usa a URL do Railway.
+
+### Passo 3 — Frontend onde quiser
+
+#### GitHub Pages (já configurado)
+
+```bash
+git add frontend/config.js
+git commit -m "chore: aponta frontend pro backend Railway"
+git push origin main
+```
+
+O Pages servirá `frontend/index.html` em `https://wcristoni.github.io/HolyRead/`. (O Pages do repo está configurado pra servir o **raiz** do repo. Como o `index.html` está em `frontend/`, será necessário ou (a) mudar a config do Pages pra "/frontend" branch, ou (b) mover só os arquivos do frontend pra raiz numa branch dedicada `gh-pages`.)
+
+#### Render (estático)
+
+`render.yaml`:
+```yaml
+services:
+  - type: web
+    name: holyread-front
+    runtime: static
+    buildCommand: "true"
+    staticPublishPath: ./frontend
+```
+
+#### Usevelty / outro estático
+
+Suba o conteúdo da pasta `frontend/` como site estático. Não esqueça do `config.js` apontando pro Railway.
+
+### Por que não publico V1 só no Pages
+
+Se a gente publicar `frontend/` no Pages **antes** do backend Railway estar no ar, o usuário verá o app carregar mas com toast `"Erro ao carregar versão. Verifique conexão / backend."` — quebrado. Por isso o repo está commitado mas **não foi feito push da V1** até o backend ter um endereço fixo.
 
 ---
 
@@ -490,29 +425,48 @@ Todas as configurações ficam no início do script em `index.html`:
 
 ```
 holypleiiiz-bible/
-│
-├── index.html          # App completo (HTML + CSS + JS em arquivo único)
-├── serve.sh            # Servidor local de desenvolvimento
-├── README.md           # Este arquivo
-│
-└── data/               # Versões bíblicas em JSON (~28 MB total)
-    ├── pt_nvi.json     # Nova Versão Internacional (Português)
-    ├── pt_aa.json      # Almeida Atualizada (Português)
-    ├── pt_acf.json     # Almeida Corrigida Fiel (Português)
-    ├── en_kjv.json     # King James Version (Inglês)
-    ├── en_bbe.json     # Bible in Basic English (Inglês)
-    ├── es_rvr.json     # Reina-Valera Revisada (Espanhol)
-    └── fr_apee.json    # Alliance Permanente (Francês)
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI app, CORS, rate limit, security headers
+│   │   ├── config.py            # config via env
+│   │   ├── limiter.py           # slowapi limiter compartilhado
+│   │   ├── osis_codes.py        # códigos OSIS dos 66 livros
+│   │   ├── routes/
+│   │   │   ├── bible.py         # Bíblias + busca
+│   │   │   └── original.py      # Hebraico + Grego
+│   │   └── services/
+│   │       └── data_loader.py   # leitura cacheada dos JSONs
+│   ├── data/
+│   │   ├── bible/*.json         # 7 traduções (V0)
+│   │   ├── hebrew/NN.json       # gerado via ETL
+│   │   └── greek/NN.json        # gerado via ETL
+│   ├── scripts/
+│   │   ├── import_hebrew.py     # ETL morphhb → JSON
+│   │   ├── import_greek.py      # ETL MorphGNT → JSON
+│   │   ├── translit_he.py       # transliteração hebraica
+│   │   └── translit_grc.py      # transliteração grega (Erasm/Mod)
+│   ├── pyproject.toml
+│   ├── Dockerfile
+│   ├── railway.toml
+│   └── .env.example
+├── frontend/
+│   ├── index.html               # app
+│   ├── config.js                # API_BASE configurável
+│   └── assets/
+│       └── api.js               # cliente HTTP
+├── scripts/
+│   └── dev.sh                   # back+front+QR LAN
+└── README.md
 ```
 
 ---
 
-## Licença dos dados bíblicos
+## Roadmap
 
-Os textos utilizados são versões de domínio público ou de uso livre para fins não-comerciais. Verifique os termos de cada versão antes de uso comercial, especialmente NVI (Biblica) e RVR (Sociedades Bíblicas).
-
----
-
-*HolyRead é o módulo de leitura do ecossistema HolyPleiiiz — estimulando pessoas a lerem a Bíblia todos os dias.*
-# HolyRead
-# HolyRead
+- [ ] Persistir progresso/notas no MongoDB (V2)
+- [ ] Login (HolyPleiiiz SSO) e merge com app de quizz
+- [ ] Audio Bible (mp3 hospedado em CDN)
+- [ ] Service Worker / offline parcial
+- [ ] **Tradução das glossas para PT/ES/FR** (V2 — atualmente glossas em inglês via TBESH/TBESG)
+- [ ] Concordância: tap numa palavra → todas as ocorrências no AT/NT
+- [ ] Modos de leitura (em ordem cronológica, plano de leitura)

@@ -1,0 +1,2786 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HolyRead — Bíblia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F2F1FA;
+    --surface: #FFFFFF;
+    --surface2: #ECEAF8;
+    --border: #D8D5F0;
+    --text: #1E1B4B;
+    --text2: #5B5794;
+    --text3: #9B97C4;
+    --accent: #5B50C8;
+    --accent2: #7B72E2;
+    --accent-bg: #ECEAF8;
+    --highlight: #EAE7FF;
+    --shadow: rgba(91,80,200,0.08);
+    --shadow2: rgba(91,80,200,0.18);
+    --verse-num: #7B72E2;
+    --topbar-bg: linear-gradient(135deg, #2B2872 0%, #4848A0 100%);
+    --topbar-text: rgba(255,255,255,0.92);
+    --topbar-text2: rgba(255,255,255,0.6);
+    --topbar-border: rgba(255,255,255,0.12);
+    --reading-font: 'Lora', Georgia, serif;
+    --sidebar-w: 300px;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --font-size: 17px;
+    --line-height: 1.85;
+  }
+  [data-theme="dark"] {
+    --bg: #13112A;
+    --surface: #1E1B3F;
+    --surface2: #252249;
+    --border: #333068;
+    --text: #F0EEFF;
+    --text2: #B8B3E8;
+    --text3: #7A75B0;
+    --accent: #8B85E8;
+    --accent2: #A89FF0;
+    --accent-bg: #252249;
+    --highlight: #2A2655;
+    --shadow: rgba(0,0,0,0.45);
+    --shadow2: rgba(0,0,0,0.65);
+    --verse-num: #A89FF0;
+    --topbar-bg: linear-gradient(135deg, #1A1838 0%, #2B2872 100%);
+    --topbar-text: rgba(255,255,255,0.92);
+    --topbar-text2: rgba(255,255,255,0.5);
+    --topbar-border: rgba(255,255,255,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: var(--font-size); }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 62px;
+    background: var(--topbar-bg);
+    border-bottom: 1px solid var(--topbar-border);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 16px;
+    box-shadow: 0 4px 20px rgba(43,40,114,0.35);
+  }
+  #logo {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #fff;
+    white-space: nowrap;
+    text-decoration: none;
+    display: flex; align-items: center; gap: 8px;
+    letter-spacing: -0.01em;
+  }
+  #logo .cross {
+    font-size: 0.9rem; opacity: 0.75;
+    background: rgba(255,255,255,0.15);
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #topbar-center {
+    flex: 1;
+    display: flex; align-items: center; gap: 8px;
+    max-width: 500px;
+  }
+  #search-box {
+    flex: 1;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 24px;
+    padding: 7px 16px 7px 38px;
+    font-size: 0.85rem;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  #search-box::placeholder { color: rgba(255,255,255,0.5); }
+  #search-box:focus {
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.18);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+  }
+  .search-wrap { position: relative; flex: 1; }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: rgba(255,255,255,0.5); pointer-events: none; font-size: 0.9rem;
+  }
+  #topbar-right { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .icon-btn {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer;
+    color: rgba(255,255,255,0.85); font-size: 1rem; padding: 6px 10px;
+    border-radius: var(--radius-sm); transition: background 0.2s, border-color 0.2s;
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.3); color: #fff; }
+  .icon-btn.active { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.4); color: #fff; }
+  select.styled {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; border-radius: var(--radius-sm); padding: 5px 22px 5px 8px;
+    font-size: 0.8rem; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.6)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center;
+    transition: background 0.2s;
+  }
+  select.styled:hover { background-color: rgba(255,255,255,0.2); }
+  select.styled:focus { border-color: rgba(255,255,255,0.45); }
+  select.styled option { background: #2B2872; color: #fff; }
+  select.styled optgroup { background: #1E1B3F; color: rgba(255,255,255,0.5); font-size: 0.75rem; }
+
+  /* ── LAYOUT ── */
+  #app { display: flex; padding-top: 62px; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w); min-width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: fixed; top: 62px; left: 0; bottom: 0;
+    overflow-y: auto; overflow-x: hidden;
+    z-index: 50;
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+  }
+  #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
+  .sidebar-section { padding: 12px; }
+  .sidebar-title {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text3);
+    padding: 8px 8px 6px; margin-bottom: 4px;
+  }
+  .testament-label {
+    font-size: 0.67rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent2);
+    padding: 10px 8px 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .testament-label::before { content: ''; flex: 1; height: 1px; background: var(--border); }
+  #book-list { padding: 0 8px 12px; }
+  .book-btn {
+    display: block; width: 100%; text-align: left;
+    background: none; border: none; cursor: pointer;
+    padding: 7px 10px; border-radius: var(--radius-sm);
+    font-size: 0.85rem; color: var(--text2);
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: 'Inter', sans-serif;
+  }
+  .book-btn:hover { background: var(--surface2); color: var(--text); }
+  .book-btn.active {
+    background: var(--accent);
+    color: #fff; font-weight: 600;
+    box-shadow: 0 2px 8px rgba(91,80,200,0.3);
+  }
+
+  /* ── MAIN ── */
+  #main {
+    flex: 1;
+    margin-left: var(--sidebar-w);
+    transition: margin-left 0.3s cubic-bezier(.4,0,.2,1);
+    min-height: calc(100vh - 62px);
+    display: flex; flex-direction: column;
+  }
+  #main.full { margin-left: 0; }
+
+  /* ── CHAPTER NAV ── */
+  #chapter-nav {
+    position: sticky; top: 62px; z-index: 40;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 12px;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(91,80,200,0.05);
+  }
+  #chapter-nav h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem; font-weight: 700;
+    color: var(--text);
+    flex-shrink: 0;
+    letter-spacing: -0.01em;
+  }
+  #chapter-nav h1 span { color: var(--accent); }
+  .chapter-pills {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    flex: 1; align-items: center;
+  }
+  .ch-pill {
+    min-width: 32px; height: 28px; padding: 0 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 0.78rem; color: var(--text2);
+    cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 500;
+  }
+  .ch-pill:hover { background: var(--accent-bg); border-color: var(--accent2); color: var(--accent); }
+  .ch-pill.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    font-weight: 700; box-shadow: 0 2px 8px rgba(91,80,200,0.3);
+  }
+
+  /* ── READING AREA ── */
+  #reading {
+    flex: 1; padding: 32px 24px 80px;
+    max-width: 780px; margin: 0 auto; width: 100%;
+  }
+  #verses-container { display: flex; flex-direction: column; gap: 2px; }
+  .verse-block {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 10px 12px; border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .verse-block:hover { background: var(--highlight); }
+  .verse-num {
+    font-size: 0.72rem; color: var(--verse-num); font-weight: 700;
+    min-width: 22px; padding-top: 3px; text-align: right;
+    font-family: 'Inter', sans-serif; user-select: none; flex-shrink: 0;
+    line-height: var(--line-height);
+  }
+  .verse-text {
+    font-family: var(--reading-font);
+    font-size: 1rem; color: var(--text);
+    line-height: var(--line-height); flex: 1;
+  }
+  /* TTS reading highlight */
+  .verse-block.highlighted {
+    background: #EAE7FF;
+    border-left: 3px solid var(--accent2);
+    padding-left: 9px;
+  }
+  .verse-block.highlighted .verse-text { color: var(--text); }
+  .verse-block.highlighted .verse-num { color: var(--accent); }
+  [data-theme="dark"] .verse-block.highlighted { background: #2A2655; border-left-color: var(--accent2); }
+  [data-theme="dark"] .verse-block.highlighted .verse-text { color: #E8E5FF; }
+  /* selected overrides highlighted border */
+  .verse-block.selected.highlighted { border-left-color: var(--accent); }
+  /* User selection for sharing */
+  .verse-block.selected {
+    background: var(--accent-bg);
+    border-left: 3px solid var(--accent);
+    padding-left: 9px;
+  }
+  .verse-block.selected .verse-text { color: var(--text); }
+  .verse-block.selected .verse-num { color: var(--accent); }
+  .verse-block.selected::after {
+    content: '✓';
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--accent); font-size: 0.8rem; font-weight: 700;
+  }
+
+  /* ── SHARE BAR ── */
+  #share-bar {
+    display: none; position: fixed;
+    bottom: 0; left: var(--sidebar-w); right: 0; z-index: 95;
+    background: linear-gradient(135deg, #2B2872 0%, #5B50C8 100%);
+    padding: 12px 20px;
+    align-items: center; gap: 10px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+    transition: left 0.3s;
+  }
+  #share-bar.visible { display: flex; }
+  #share-bar.full { left: 0; }
+  .share-count {
+    font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.9);
+    flex: 1; white-space: nowrap;
+  }
+  .share-btn {
+    background: rgba(255,255,255,0.2); border: none; border-radius: 8px;
+    color: #fff; font-size: 0.8rem; font-weight: 600; padding: 7px 12px;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: background 0.15s; white-space: nowrap;
+  }
+  .share-btn:hover { background: rgba(255,255,255,0.35); }
+  .share-btn .share-icon { font-size: 1rem; }
+  .share-clear {
+    background: rgba(0,0,0,0.15); border: none; border-radius: 6px;
+    color: rgba(255,255,255,0.8); padding: 6px 10px; cursor: pointer;
+    font-size: 0.8rem; transition: background 0.15s;
+  }
+  .share-clear:hover { background: rgba(0,0,0,0.25); color: #fff; }
+
+  /* ── SEARCH RESULTS ── */
+  #search-panel {
+    display: none; position: fixed; top: 62px; right: 0;
+    width: 380px; max-width: 100vw; bottom: 0;
+    background: var(--surface); border-left: 1px solid var(--border);
+    z-index: 60; flex-direction: column;
+    box-shadow: -4px 0 24px rgba(43,40,114,0.2);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  }
+  #search-panel.open { display: flex; transform: translateX(0); }
+  .panel-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface);
+  }
+  .panel-header h3 { flex: 1; font-size: 0.9rem; font-weight: 700; color: var(--text); }
+  #search-results {
+    flex: 1; overflow-y: auto; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .result-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px;
+    cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  }
+  .result-card:hover {
+    border-color: var(--accent2); background: var(--highlight);
+    box-shadow: 0 3px 12px rgba(91,80,200,0.12);
+  }
+  .result-ref {
+    font-size: 0.75rem; font-weight: 700; color: var(--accent);
+    margin-bottom: 4px; font-family: 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+  }
+  .result-text {
+    font-family: 'Lora', serif; font-size: 0.85rem; color: var(--text2);
+    line-height: 1.5;
+  }
+  .result-text mark { background: #EAE7FF; color: var(--accent); border-radius: 3px; padding: 0 2px; }
+  .no-results { text-align: center; color: var(--text3); padding: 40px 16px; font-size: 0.9rem; }
+
+  /* ── FONT SIZE CONTROL ── */
+  #font-panel {
+    display: none; position: absolute;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    box-shadow: 0 8px 32px rgba(43,40,114,0.22);
+    z-index: 200; width: 268px;
+    top: 60px; right: 0;
+    flex-direction: column; gap: 12px;
+  }
+  #font-panel.open { display: flex; }
+
+  /* ── FONT CARDS ── */
+  .font-cards {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .font-card {
+    border: 2px solid var(--border); border-radius: 10px;
+    padding: 10px 8px; cursor: pointer; text-align: center;
+    background: var(--surface2);
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    display: flex; flex-direction: column; gap: 3px; align-items: center;
+  }
+  .font-card:hover { border-color: var(--accent2); background: var(--highlight); }
+  .font-card.active {
+    border-color: var(--accent); background: var(--accent-bg);
+    box-shadow: 0 2px 10px rgba(91,80,200,0.2);
+  }
+  .font-card .fc-sample {
+    font-size: 1.3rem; line-height: 1.2; color: var(--text);
+    pointer-events: none;
+  }
+  .font-card .fc-name {
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--text3); text-transform: uppercase;
+    font-family: 'Inter', sans-serif; pointer-events: none;
+  }
+  .font-card.active .fc-name { color: var(--accent); }
+  .font-panel-label {
+    font-size: 0.72rem; color: var(--text3); font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .font-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 4px; border-radius: 2px;
+    background: var(--border); outline: none; cursor: pointer;
+  }
+  .font-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+    box-shadow: 0 2px 6px rgba(91,80,200,0.4);
+  }
+  .font-preview {
+    font-family: var(--reading-font); color: var(--text2);
+    text-align: center; border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  /* ── TTS CONTROLS ── */
+  #tts-bar {
+    display: none; position: fixed; bottom: 0; left: var(--sidebar-w);
+    right: 0; z-index: 91;
+    background: var(--surface);
+    border-top: 2px solid var(--border);
+    padding: 10px 24px;
+    align-items: center; gap: 16px;
+    box-shadow: 0 -4px 20px rgba(43,40,114,0.12);
+    transition: left 0.3s;
+  }
+  #tts-bar.visible { display: flex; }
+  #tts-bar.full { left: 0; }
+  .tts-book { font-size: 0.8rem; color: var(--text2); font-weight: 500; flex: 1; }
+  .tts-book span { color: var(--accent); }
+  .tts-btn {
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 50%;
+    width: 40px; height: 40px;
+    cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(91,80,200,0.4);
+  }
+  .tts-btn:hover { opacity: 0.9; transform: scale(1.06); box-shadow: 0 4px 14px rgba(91,80,200,0.5); }
+  .tts-btn.secondary {
+    background: var(--surface2); color: var(--text2);
+    border: 1px solid var(--border);
+    width: 34px; height: 34px; font-size: 0.85rem;
+    box-shadow: none;
+  }
+  .tts-btn.secondary:hover { background: var(--accent-bg); color: var(--accent); box-shadow: none; }
+  .tts-progress {
+    flex: 1; display: flex; flex-direction: column; gap: 5px;
+    min-width: 0;
+  }
+  .tts-verse-text {
+    font-family: 'Lora', serif; font-size: 0.8rem; color: var(--text2);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tts-track {
+    height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .tts-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .speed-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text2); border-radius: 8px; padding: 4px 8px;
+    font-size: 0.75rem; cursor: pointer; outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+  .speed-select:hover { border-color: var(--accent2); }
+
+  /* ── LOADING ── */
+  #loading {
+    position: fixed; inset: 0; z-index: 1000;
+    background: linear-gradient(160deg, #2B2872 0%, #4848A0 60%, #5B50C8 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+  }
+  #loading.hidden { display: none; }
+  .loader-cross {
+    font-size: 3rem; animation: pulse 1.5s ease-in-out infinite;
+    color: rgba(255,255,255,0.9);
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.92); opacity: 0.55; }
+  }
+  .loader-text {
+    font-family: 'Inter', sans-serif; font-size: 0.95rem;
+    color: rgba(255,255,255,0.75); letter-spacing: 0.02em;
+  }
+  .loader-bar {
+    width: 160px; height: 3px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden;
+  }
+  .loader-fill {
+    height: 100%; background: rgba(255,255,255,0.85); border-radius: 2px;
+    animation: load 1.2s ease-in-out infinite;
+  }
+  @keyframes load {
+    0% { width: 0; margin-left: 0; }
+    50% { width: 60%; margin-left: 20%; }
+    100% { width: 0; margin-left: 100%; }
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #2B2872; color: #fff;
+    padding: 10px 22px; border-radius: 24px; font-size: 0.85rem; font-weight: 500;
+    opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 500;
+    pointer-events: none; white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(43,40,114,0.4);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── OVERLAY ── */
+  #overlay {
+    display: none; position: fixed; top: 62px; left: 0; right: 0; bottom: 0; z-index: 45;
+    background: rgba(30,27,75,0.5); backdrop-filter: blur(2px);
+  }
+  #overlay.show { display: block; }
+
+  /* ── CHAPTER SHEET (mobile floating chapter picker) ── */
+  #chapter-sheet {
+    display: none; position: fixed; inset: 0; z-index: 110;
+  }
+  #chapter-sheet.open { display: block; }
+  .sheet-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(30,27,75,0.55);
+    backdrop-filter: blur(3px);
+    animation: sheetFade 0.2s ease;
+  }
+  .sheet-content {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--surface);
+    border-top-left-radius: 20px; border-top-right-radius: 20px;
+    padding: 12px 16px 28px;
+    max-height: 75vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.3);
+    animation: sheetSlide 0.28s cubic-bezier(.4,0,.2,1);
+  }
+  .sheet-handle {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: var(--border); margin: 0 auto 10px;
+  }
+  .sheet-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 0 2px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .sheet-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem; font-weight: 700; color: var(--text);
+    flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sheet-title span { color: var(--accent); }
+  .sheet-close {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text2); width: 32px; height: 32px;
+    border-radius: 50%; cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sheet-close:hover { background: var(--accent-bg); color: var(--accent); }
+  .sheet-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 8px; overflow-y: auto;
+    padding: 2px 2px 4px;
+  }
+  .sheet-grid .ch-pill {
+    min-width: unset; height: 46px; font-size: 0.92rem; font-weight: 600;
+  }
+  @keyframes sheetFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sheetSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  /* Mobile-only chapter button (hidden on desktop) */
+  #chapter-mobile-btn {
+    display: none; align-items: center; gap: 6px;
+    padding: 0 12px; height: 32px; min-width: unset;
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    font-weight: 600; font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+  #chapter-mobile-btn:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  #chapter-mobile-btn .arrow { font-size: 0.65rem; opacity: 0.85; }
+
+  /* ── ORIGINAL SHEET — translation strip ── */
+  .original-translation {
+    background: var(--accent-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .original-translation-label {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.66rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 4px;
+  }
+  .original-translation-empty { color: var(--text3); font-style: italic; }
+  /* word-level gloss */
+  .ow-gloss {
+    color: var(--accent);
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin-left: auto;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  /* ── ORIGINAL SHEET (Hebrew / Greek study) ── */
+  #original-sheet {
+    display: none; position: fixed; inset: 0; z-index: 110;
+  }
+  #original-sheet.open { display: block; }
+  /* Single-scroll container: header at top, everything below scrolls together,
+     so the user always sees verse + original + every word card by scrolling. */
+  #original-sheet .sheet-content {
+    max-height: 88vh;
+    max-height: 88dvh;            /* iOS Safari URL-bar safe */
+    overflow: hidden;             /* container itself doesn't scroll */
+    display: flex; flex-direction: column;
+  }
+  #original-sheet .sheet-handle,
+  #original-sheet .sheet-header { flex-shrink: 0; }
+  #original-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+  }
+  #original-text-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px 10px;
+    margin-bottom: 12px;
+  }
+  .original-text {
+    font-size: 1.15rem; line-height: 1.55;
+    color: var(--text); font-weight: 500;
+    word-break: break-word;
+  }
+  @media (min-width: 768px) {
+    .original-text { font-size: 1.3rem; }
+  }
+  .original-text.rtl {
+    direction: rtl; text-align: right;
+    font-family: 'David', 'Times New Roman', serif;
+  }
+  .original-text.ltr {
+    direction: ltr;
+    font-family: 'GFS Didot', Cambria, 'Times New Roman', serif;
+  }
+  .original-meta-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 12px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .original-tts-btn {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 7px 12px;
+    font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    box-shadow: 0 2px 8px rgba(91,80,200,0.25);
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  .original-tts-btn:hover { opacity: 0.92; }
+  .original-tts-btn:active { transform: scale(0.97); }
+  .original-translit-toggle {
+    display: inline-flex;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 2px;
+  }
+  .original-translit-toggle button {
+    background: transparent; border: none; cursor: pointer;
+    padding: 5px 10px; border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 0.76rem; font-weight: 600;
+    color: var(--text2);
+  }
+  .original-translit-toggle button.active {
+    background: var(--accent); color: #fff;
+  }
+  .original-attrib {
+    margin-left: auto;
+    font-size: 0.68rem; color: var(--text3);
+    font-family: 'Inter', sans-serif;
+  }
+  #original-words {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 2px 2px 4px;
+  }
+  .original-word {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .original-word:hover { border-color: var(--accent2); background: var(--highlight); }
+  .original-word-main {
+    display: flex; align-items: baseline; gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ow-text {
+    font-size: 1.2rem; font-weight: 600; color: var(--text);
+    flex-shrink: 0;
+  }
+  .ow-text.rtl { direction: rtl; font-family: 'David', serif; }
+  .ow-text.ltr { font-family: 'GFS Didot', Cambria, serif; }
+  .ow-translit {
+    font-size: 0.85rem; color: var(--accent);
+    font-style: italic; font-family: 'Inter', sans-serif;
+  }
+  .ow-meta {
+    display: flex; flex-wrap: wrap; gap: 6px 14px;
+    margin-top: 8px; padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    font-size: 0.74rem; color: var(--text2);
+    font-family: 'Inter', sans-serif;
+  }
+  .ow-meta-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .ow-meta-label {
+    font-size: 0.64rem; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .ow-meta-val { color: var(--text2); }
+  .ow-morphemes {
+    margin-top: 6px; display: flex; flex-direction: column; gap: 3px;
+    font-size: 0.78rem;
+  }
+  .ow-morpheme-row {
+    display: flex; gap: 8px; align-items: baseline;
+    padding: 3px 6px; border-radius: 4px;
+    background: var(--surface);
+  }
+  .ow-morpheme-text { font-weight: 600; color: var(--text); min-width: 60px; }
+  .ow-morpheme-text.rtl { direction: rtl; text-align: right; }
+  .ow-morpheme-meta { color: var(--text3); font-size: 0.72rem; }
+  #original-loading, #original-empty {
+    text-align: center; padding: 30px 20px;
+    color: var(--text3); font-size: 0.88rem;
+  }
+  /* Share-bar Original button */
+  .share-original {
+    background: rgba(255,255,255,0.32) !important;
+    border: 1px solid rgba(255,255,255,0.4) !important;
+  }
+
+  /* ── CONFIRM DIALOG (auto-advance prompt) ── */
+  #confirm-dialog {
+    display: none; position: fixed; inset: 0; z-index: 200;
+  }
+  #confirm-dialog.open { display: block; }
+  .dialog-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(30,27,75,0.6);
+    backdrop-filter: blur(3px);
+    animation: sheetFade 0.2s ease;
+  }
+  .dialog-content {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface); border-radius: 16px;
+    padding: 22px 22px 18px;
+    max-width: 380px; width: calc(100% - 40px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.32);
+    animation: dialogIn 0.22s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes dialogIn {
+    from { opacity: 0; transform: translate(-50%, -45%) scale(0.94); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .dialog-icon {
+    font-size: 2rem; text-align: center; margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .dialog-content h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.05rem; font-weight: 700; color: var(--text);
+    text-align: center;
+    margin-bottom: 8px; letter-spacing: -0.01em;
+  }
+  .dialog-content p {
+    font-size: 0.88rem; color: var(--text2);
+    line-height: 1.55; text-align: center;
+    margin-bottom: 16px;
+  }
+  .dialog-remember {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; margin-bottom: 14px;
+    background: var(--surface2); border-radius: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .dialog-remember input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+  .dialog-remember span { font-size: 0.82rem; color: var(--text2); }
+  .dialog-actions {
+    display: flex; gap: 8px;
+  }
+  .dialog-btn {
+    flex: 1; border: none; padding: 11px 14px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s, transform 0.05s;
+  }
+  .dialog-btn.primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 3px 12px rgba(91,80,200,0.35);
+  }
+  .dialog-btn.primary:hover { background: var(--accent2); }
+  .dialog-btn.primary:active { transform: scale(0.98); }
+  .dialog-btn.secondary {
+    background: var(--surface2); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .dialog-btn.secondary:hover { background: var(--accent-bg); color: var(--text); }
+
+  /* ── VERSION SHEET (mobile version/language picker) ── */
+  #version-sheet {
+    display: none; position: fixed; inset: 0; z-index: 110;
+  }
+  #version-sheet.open { display: block; }
+  #version-sheet .sheet-content {
+    overflow-y: auto;
+  }
+  #version-sheet-list { overflow-y: auto; padding: 2px 2px 4px; }
+  .version-group { margin-bottom: 14px; }
+  .version-group:last-child { margin-bottom: 0; }
+  .version-group-label {
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text3);
+    padding: 4px 6px 8px;
+    font-family: 'Inter', sans-serif;
+  }
+  .version-row {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; padding: 13px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    font-family: 'Inter', sans-serif;
+    text-align: left;
+  }
+  .version-row:hover {
+    background: var(--accent-bg); border-color: var(--accent2);
+  }
+  .version-row.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    box-shadow: 0 2px 10px rgba(91,80,200,0.25);
+  }
+  .version-row-name {
+    font-size: 0.92rem; font-weight: 600; color: var(--text);
+    flex: 1; min-width: 0;
+  }
+  .version-row.active .version-row-name { color: #fff; }
+  .version-row-code {
+    font-size: 0.68rem; font-weight: 700;
+    color: var(--text3); letter-spacing: 0.05em;
+    background: var(--surface); padding: 3px 8px; border-radius: 6px;
+    margin-left: 10px; flex-shrink: 0;
+  }
+  .version-row.active .version-row-code {
+    background: rgba(255,255,255,0.22); color: #fff;
+  }
+  [data-theme="dark"] .version-row-code { background: var(--bg); }
+
+  /* ── MOBILE SEARCH BAR (slide-down) ── */
+  #mobile-search-bar {
+    display: none;
+    position: fixed; top: 62px; left: 0; right: 0; z-index: 99;
+    background: #2B2872;
+    padding: 8px 12px;
+    gap: 8px; align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    animation: slideDown 0.2s ease;
+  }
+  #mobile-search-bar.open { display: flex; }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+  }
+  #mobile-search-bar input {
+    flex: 1; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px; padding: 8px 14px;
+    font-size: 0.9rem; color: #fff; outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+  #mobile-search-bar input::placeholder { color: rgba(255,255,255,0.5); }
+  #mobile-search-bar input:focus { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.5); }
+  #mobile-search-close {
+    background: rgba(255,255,255,0.12); border: none; border-radius: 50%;
+    color: rgba(255,255,255,0.8); width: 30px; height: 30px;
+    cursor: pointer; font-size: 0.9rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    :root { --sidebar-w: 85vw; }
+
+    /* Sidebar: full-height drawer */
+    #sidebar {
+      transform: translateX(calc(-1 * var(--sidebar-w)));
+      top: 62px; width: var(--sidebar-w); min-width: unset;
+    }
+    #sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.3); }
+
+    /* Main: always full width on mobile */
+    #main { margin-left: 0 !important; }
+
+    /* Topbar adjustments */
+    #logo .cross { display: none; }
+    #topbar-center { display: none; }
+    #tts-toggle { display: none; }          /* TTS via chapter-nav button instead */
+    #version-select { display: none; }
+    #version-mobile-btn { display: flex !important; }
+    #topbar { gap: 6px; padding: 0 10px; }
+
+    /* Chapter nav: single row with title + chapter button + tts */
+    #chapter-nav {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      top: 62px;
+      flex-wrap: nowrap;
+    }
+    #chapter-nav.search-open { top: 110px; }   /* pushed down when search bar open */
+    #chapter-nav h1 { font-size: 0.92rem; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Hide horizontal pills on mobile — replaced by floating sheet */
+    .chapter-pills { display: none !important; }
+    /* Show floating chapter button instead */
+    #chapter-mobile-btn { display: flex !important; }
+    .ch-pill { flex-shrink: 0; min-width: 36px; height: 32px; font-size: 0.78rem; }
+
+    /* Reading area */
+    #reading { padding: 16px 12px 120px; }
+    .verse-block { padding: 8px 8px; gap: 10px; }
+
+    /* Panels */
+    #search-panel { width: 100%; top: 62px; }
+    #search-panel.open.mobile-with-search { top: 110px; }
+    #font-panel { position: fixed; left: 10px; right: 10px; top: 70px; width: auto; }
+
+    /* Bars */
+    #tts-bar  { left: 0 !important; }
+    #share-bar { left: 0 !important; }
+    .share-btn span.share-label { display: none; }
+    #tts-voice-wrap { display: none; }
+
+    /* Mobile TTS floating button inside chapter-nav */
+    #mobile-tts-btn { display: flex !important; }
+  }
+
+  /* Tablet / narrow desktop: native version select gets cramped — use floating sheet */
+  @media (max-width: 1024px) {
+    #version-select { display: none !important; }
+    #version-mobile-btn { display: flex !important; }
+  }
+
+  /* Mobile landscape: topbar shows search */
+  @media (max-width: 900px) and (orientation: landscape) {
+    :root { --sidebar-w: 260px; }
+    #sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); top: 62px; }
+    #sidebar.mobile-open { transform: translateX(0); }
+    #main { margin-left: 0 !important; }
+    #topbar-center { display: flex; max-width: 300px; }
+    #chapter-nav { top: 62px; flex-direction: row; flex-wrap: nowrap; }
+    .chapter-pills { display: none !important; }
+    #chapter-mobile-btn { display: flex !important; }
+    .ch-pill { flex-shrink: 0; }
+    #version-select { display: none; }
+    #version-mobile-btn { display: flex !important; }
+    #tts-toggle { display: flex; }
+    #logo .cross { display: flex; }
+    #font-panel { position: absolute; left: auto; right: 0; top: 60px; width: 268px; }
+  }
+
+  @media (min-width: 1200px) {
+    #reading { padding: 40px 40px 100px; }
+  }
+
+  /* ── FONT SIZE STATES ── */
+  .font-xs { font-size: 14px; }
+  .font-sm { font-size: 15px; }
+  .font-md { font-size: 17px; }
+  .font-lg { font-size: 19px; }
+  .font-xl { font-size: 22px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* Version badge */
+  .version-badge {
+    display: inline-block; padding: 2px 8px;
+    background: var(--accent); color: #fff;
+    border-radius: 6px; font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 0.06em; margin-left: 8px;
+    font-family: 'Inter', sans-serif;
+    vertical-align: middle; position: relative; top: -1px;
+    box-shadow: 0 2px 6px rgba(91,80,200,0.3);
+  }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 16px; min-height: 340px;
+    color: var(--text3); text-align: center;
+  }
+  .empty-state .big-icon {
+    font-size: 3.5rem; opacity: 0.35;
+    animation: pulse 3s ease-in-out infinite;
+  }
+  .empty-state p { font-size: 0.92rem; max-width: 300px; line-height: 1.7; color: var(--text3); }
+</style>
+</head>
+<body data-theme="light">
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="loader-cross">✝</div>
+  <div class="loader-text">Carregando a Palavra...</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <button class="icon-btn" id="sidebar-toggle" title="Menu">☰</button>
+  <a href="#" id="logo"><span class="cross">✝</span> HolyRead</a>
+
+  <div id="topbar-center">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-box" placeholder='Buscar... Ex: "João 3:16" ou "amor"' autocomplete="off">
+    </div>
+  </div>
+
+  <div id="topbar-right">
+    <div style="position:relative">
+      <button class="icon-btn" id="font-btn" title="Tamanho da fonte">Aa</button>
+      <div id="font-panel">
+        <div class="font-panel-label">Tipo de letra</div>
+        <div class="font-cards" id="font-cards">
+          <button class="font-card active" data-font="Lora">
+            <span class="fc-sample" style="font-family:'Lora',serif">Aa</span>
+            <span class="fc-name">Lora</span>
+          </button>
+          <button class="font-card" data-font="EB Garamond">
+            <span class="fc-sample" style="font-family:'EB Garamond',serif">Aa</span>
+            <span class="fc-name">Garamond</span>
+          </button>
+          <button class="font-card" data-font="Merriweather">
+            <span class="fc-sample" style="font-family:'Merriweather',serif">Aa</span>
+            <span class="fc-name">Merriweather</span>
+          </button>
+          <button class="font-card" data-font="Inter">
+            <span class="fc-sample" style="font-family:'Inter',sans-serif">Aa</span>
+            <span class="fc-name">Inter</span>
+          </button>
+        </div>
+        <div class="font-panel-label" style="margin-top:2px">Tamanho</div>
+        <input type="range" class="font-slider" id="font-slider" min="12" max="26" value="17" step="1">
+        <div class="font-preview" id="font-preview">Porque Deus amou o mundo...</div>
+      </div>
+    </div>
+    <select class="styled" id="version-select" title="Versão da Bíblia" style="max-width:200px">
+      <optgroup label="🇧🇷 Português">
+        <option value="pt_nvi">Nova Versão Internacional</option>
+        <option value="pt_aa">Almeida Atualizada</option>
+        <option value="pt_acf">Almeida Corrigida Fiel</option>
+      </optgroup>
+      <optgroup label="🇺🇸 English">
+        <option value="en_kjv">King James Version</option>
+        <option value="en_bbe">Bible in Basic English</option>
+      </optgroup>
+      <optgroup label="🇪🇸 Español">
+        <option value="es_rvr">Reina-Valera Revisada</option>
+      </optgroup>
+      <optgroup label="🇫🇷 Français">
+        <option value="fr_apee">Alliance Permanente</option>
+      </optgroup>
+    </select>
+    <!-- Mobile: compact version button (shown on mobile, hidden on desktop) -->
+    <button class="icon-btn" id="version-mobile-btn" title="Versão" style="display:none;font-size:0.75rem;font-weight:700;letter-spacing:0.03em">NVI</button>
+    <button class="icon-btn" id="tts-toggle" title="Leitura em voz alta">🔊</button>
+    <button class="icon-btn" id="theme-btn" title="Alternar tema">🌙</button>
+    <button class="icon-btn" id="mobile-search-btn" title="Buscar" style="display:none">🔍</button>
+  </div>
+</div>
+
+<!-- MOBILE SEARCH BAR -->
+<div id="mobile-search-bar">
+  <input type="text" id="mobile-search-input" placeholder='🔍  Buscar versículo ou palavra...' autocomplete="off">
+  <button id="mobile-search-close">✕</button>
+</div>
+
+<!-- OVERLAY (mobile sidebar) -->
+<div id="overlay"></div>
+
+<!-- APP -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Livros da Bíblia</div>
+      <input type="text" id="book-filter" class="styled"
+        style="width:100%;border-radius:8px;padding:7px 10px;font-size:0.82rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);outline:none"
+        placeholder="🔍 Filtrar livro...">
+    </div>
+    <div id="book-list"></div>
+  </nav>
+
+  <!-- MAIN -->
+  <main id="main">
+    <!-- CHAPTER NAV -->
+    <div id="chapter-nav">
+      <h1 id="book-title">—</h1>
+      <!-- Mobile-only floating chapter button -->
+      <button class="ch-pill" id="chapter-mobile-btn" title="Selecionar capítulo">
+        Cap. <span id="chapter-mobile-num">1</span><span class="arrow">▼</span>
+      </button>
+      <!-- Mobile-only TTS button -->
+      <div id="mobile-tts-btn" style="display:none;gap:6px;flex-shrink:0;align-items:center">
+        <button class="ch-pill" id="mobile-tts-trigger" title="Ouvir" style="min-width:36px;background:var(--accent);color:#fff;border-color:var(--accent)">🔊</button>
+      </div>
+      <!-- Desktop horizontal pills -->
+      <div class="chapter-pills" id="chapter-pills"></div>
+    </div>
+
+    <!-- READING -->
+    <article id="reading">
+      <div id="verses-container">
+        <div class="empty-state">
+          <div class="big-icon">📖</div>
+          <p>Selecione um livro na barra lateral para começar a leitura.</p>
+        </div>
+      </div>
+    </article>
+  </main>
+</div>
+
+<!-- SEARCH PANEL -->
+<div id="search-panel">
+  <div class="panel-header">
+    <h3>🔍 Resultados da busca</h3>
+    <button class="icon-btn" id="close-search">✕</button>
+  </div>
+  <div id="search-results"></div>
+</div>
+
+<!-- TTS BAR -->
+<div id="tts-bar">
+  <button class="tts-btn secondary" id="tts-prev" title="Versículo anterior">◀</button>
+  <button class="tts-btn" id="tts-play" title="Play/Pause">▶</button>
+  <button class="tts-btn secondary" id="tts-next" title="Próximo versículo">▶▶</button>
+  <div class="tts-progress">
+    <div class="tts-verse-text" id="tts-verse-text">—</div>
+    <div class="tts-track"><div class="tts-fill" id="tts-fill" style="width:0%"></div></div>
+  </div>
+  <span id="tts-voice-wrap" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+    <select class="speed-select" id="tts-voice" title="Voz" style="max-width:130px">
+      <option value="">Voz padrão</option>
+    </select>
+  </span>
+  <select class="speed-select" id="tts-speed" title="Velocidade">
+    <option value="0.75">0.75×</option>
+    <option value="1" selected>1×</option>
+    <option value="1.25">1.25×</option>
+    <option value="1.5">1.5×</option>
+  </select>
+  <button class="icon-btn" id="tts-close" title="Fechar">✕</button>
+</div>
+
+<!-- SHARE BAR -->
+<div id="share-bar">
+  <div class="share-count" id="share-count">1 versículo selecionado</div>
+  <button class="share-btn share-original" id="share-original" title="Estudo no original" style="display:none">
+    <span class="share-icon">📜</span><span class="share-label">Original</span>
+  </button>
+  <button class="share-btn" id="share-whatsapp" title="Compartilhar no WhatsApp">
+    <span class="share-icon">💬</span><span class="share-label">WhatsApp</span>
+  </button>
+  <button class="share-btn" id="share-twitter" title="Compartilhar no X/Twitter">
+    <span class="share-icon">𝕏</span><span class="share-label">Twitter</span>
+  </button>
+  <button class="share-btn" id="share-facebook" title="Compartilhar no Facebook">
+    <span class="share-icon">f</span><span class="share-label">Facebook</span>
+  </button>
+  <button class="share-btn" id="share-copy" title="Copiar texto">
+    <span class="share-icon">📋</span><span class="share-label">Copiar</span>
+  </button>
+  <button class="share-clear" id="share-clear" title="Cancelar seleção">✕</button>
+</div>
+
+<!-- CHAPTER SHEET (mobile floating chapter picker) -->
+<div id="chapter-sheet">
+  <div class="sheet-backdrop" id="chapter-sheet-backdrop"></div>
+  <div class="sheet-content">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">Capítulos — <span id="chapter-sheet-book">—</span></span>
+      <button class="sheet-close" id="chapter-sheet-close" title="Fechar">✕</button>
+    </div>
+    <div class="sheet-grid" id="chapter-sheet-grid"></div>
+  </div>
+</div>
+
+<!-- ORIGINAL SHEET (Hebrew / Greek study) -->
+<div id="original-sheet">
+  <div class="sheet-backdrop" id="original-sheet-backdrop"></div>
+  <div class="sheet-content">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">📜 <span id="original-sheet-title">Original</span></span>
+      <button class="sheet-close" id="original-sheet-close" title="Fechar">✕</button>
+    </div>
+    <div id="original-scroll">
+      <div id="original-translation" class="original-translation"></div>
+      <div id="original-text-wrap">
+        <div class="original-text" id="original-text">—</div>
+        <div class="original-meta-bar">
+          <button class="original-tts-btn" id="original-tts-btn">🔊 Pronunciar</button>
+          <div class="original-translit-toggle" id="original-translit-toggle">
+            <button data-mode="A" class="active">A</button>
+            <button data-mode="B">B</button>
+          </div>
+          <span class="original-attrib" id="original-attrib"></span>
+        </div>
+      </div>
+      <div id="original-words"><div id="original-loading">Carregando…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- VERSION SHEET (mobile version/language picker) -->
+<div id="version-sheet">
+  <div class="sheet-backdrop" id="version-sheet-backdrop"></div>
+  <div class="sheet-content">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">Versão da Bíblia</span>
+      <button class="sheet-close" id="version-sheet-close" title="Fechar">✕</button>
+    </div>
+    <div id="version-sheet-list"></div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG (auto-advance / restart) -->
+<div id="confirm-dialog">
+  <div class="dialog-backdrop"></div>
+  <div class="dialog-content">
+    <div class="dialog-icon" id="confirm-icon">📖</div>
+    <h3 id="confirm-title">Continuar leitura?</h3>
+    <p id="confirm-message">—</p>
+    <label class="dialog-remember">
+      <input type="checkbox" id="confirm-remember" checked>
+      <span>Lembrar minha resposta</span>
+    </label>
+    <div class="dialog-actions">
+      <button class="dialog-btn secondary" id="confirm-no">Parar</button>
+      <button class="dialog-btn primary" id="confirm-yes">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="assets/api.js"></script>
+<script>
+// ──────────────────────────────────────────────
+// BOOK NAMES (indexed 0–65, same order all versions)
+// ──────────────────────────────────────────────
+const BOOK_NAMES = {
+  pt: ["Gênesis","Êxodo","Levítico","Números","Deuteronômio","Josué","Juízes","Rute","1 Samuel","2 Samuel","1 Reis","2 Reis","1 Crônicas","2 Crônicas","Esdras","Neemias","Ester","Jó","Salmos","Provérbios","Eclesiastes","Cânticos","Isaías","Jeremias","Lamentações","Ezequiel","Daniel","Oséias","Joel","Amós","Obadias","Jonas","Miquéias","Naum","Habacuque","Sofonias","Ageu","Zacarias","Malaquias","Mateus","Marcos","Lucas","João","Atos","Romanos","1 Coríntios","2 Coríntios","Gálatas","Efésios","Filipenses","Colossenses","1 Tessalonicenses","2 Tessalonicenses","1 Timóteo","2 Timóteo","Tito","Filemom","Hebreus","Tiago","1 Pedro","2 Pedro","1 João","2 João","3 João","Judas","Apocalipse"],
+  en: ["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi","Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"],
+  es: ["Génesis","Éxodo","Levítico","Números","Deuteronomio","Josué","Jueces","Rut","1 Samuel","2 Samuel","1 Reyes","2 Reyes","1 Crónicas","2 Crónicas","Esdras","Nehemías","Ester","Job","Salmos","Proverbios","Eclesiastés","Cantares","Isaías","Jeremías","Lamentaciones","Ezequiel","Daniel","Oseas","Joel","Amós","Abdías","Jonás","Miqueas","Nahúm","Habacuc","Sofonías","Hageo","Zacarías","Malaquías","Mateo","Marcos","Lucas","Juan","Hechos","Romanos","1 Corintios","2 Corintios","Gálatas","Efesios","Filipenses","Colosenses","1 Tesalonicenses","2 Tesalonicenses","1 Timoteo","2 Timoteo","Tito","Filemón","Hebreos","Santiago","1 Pedro","2 Pedro","1 Juan","2 Juan","3 Juan","Judas","Apocalipsis"],
+  fr: ["Genèse","Exode","Lévitique","Nombres","Deutéronome","Josué","Juges","Ruth","1 Samuel","2 Samuel","1 Rois","2 Rois","1 Chroniques","2 Chroniques","Esdras","Néhémie","Esther","Job","Psaumes","Proverbes","Ecclésiaste","Cantique","Ésaïe","Jérémie","Lamentations","Ézéchiel","Daniel","Osée","Joël","Amos","Abdias","Jonas","Michée","Nahum","Habacuc","Sophonie","Aggée","Zacharie","Malachie","Matthieu","Marc","Luc","Jean","Actes","Romains","1 Corinthiens","2 Corinthiens","Galates","Éphésiens","Philippiens","Colossiens","1 Thessaloniciens","2 Thessaloniciens","1 Timothée","2 Timothée","Tite","Philémon","Hébreux","Jacques","1 Pierre","2 Pierre","1 Jean","2 Jean","3 Jean","Jude","Apocalypse"]
+};
+
+const VERSION_LANG = {
+  pt_nvi: 'pt', pt_aa: 'pt', pt_acf: 'pt',
+  en_kjv: 'en', en_bbe: 'en',
+  es_rvr: 'es', fr_apee: 'fr'
+};
+
+const VERSION_LABEL = {
+  pt_nvi: 'NVI', pt_aa: 'AA', pt_acf: 'ACF',
+  en_kjv: 'KJV', en_bbe: 'BBE',
+  es_rvr: 'RVR', fr_apee: 'APEE'
+};
+
+const VERSION_FULL = {
+  pt_nvi: 'Nova Versão Internacional',
+  pt_aa:  'Almeida Atualizada',
+  pt_acf: 'Almeida Corrigida Fiel',
+  en_kjv: 'King James Version',
+  en_bbe: 'Bible in Basic English',
+  es_rvr: 'Reina-Valera Revisada',
+  fr_apee:'Alliance Permanente'
+};
+
+const TTS_LANG = {
+  pt: 'pt-BR', en: 'en-US', es: 'es-ES', fr: 'fr-FR'
+};
+
+// OT = 0-38, NT = 39-65
+const OT_END = 38;
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+const FONTS = [
+  { key: 'Lora',         family: "'Lora', Georgia, serif" },
+  { key: 'EB Garamond',  family: "'EB Garamond', Georgia, serif" },
+  { key: 'Merriweather', family: "'Merriweather', Georgia, serif" },
+  { key: 'Inter',        family: "'Inter', system-ui, sans-serif" },
+];
+
+let state = {
+  version: 'pt_nvi',
+  bookIdx: null,
+  chapterIdx: 0,
+  theme: 'light',
+  fontSize: 17,
+  fontKey: 'Lora',
+  bibleData: null,
+  cache: {},
+  ttsActive: false,
+  ttsPlaying: false,
+  ttsVerseIdx: 0,
+  ttsUtterance: null,
+  wakeLock: null,
+  autoAdvance: null,
+  autoRestart: null,
+  sidebarOpen: true,
+  searchOpen: false,
+  selectedVerses: new Set(),
+  availableVoices: [],
+};
+
+// ──────────────────────────────────────────────
+// ELEMENTS
+// ──────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const loading = $('loading');
+const sidebar = $('sidebar');
+const main = $('main');
+const bookList = $('book-list');
+const bookTitle = $('book-title');
+const chapterPills = $('chapter-pills');
+const versesContainer = $('verses-container');
+const searchBox = $('search-box');
+const searchPanel = $('search-panel');
+const searchResults = $('search-results');
+const ttsBar = $('tts-bar');
+const ttsPlay = $('tts-play');
+const ttsVerseText = $('tts-verse-text');
+const ttsFill = $('tts-fill');
+const overlay = $('overlay');
+
+// ──────────────────────────────────────────────
+// LOAD DATA
+// ──────────────────────────────────────────────
+async function loadVersion(version) {
+  if (state.cache[version]) return state.cache[version];
+  try {
+    const data = await window.HolyReadAPI.loadVersion(version);
+    state.cache[version] = data;
+    return data;
+  } catch(e) {
+    showToast('Erro ao carregar versão. Verifique conexão / backend.');
+    return null;
+  }
+}
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+async function init() {
+  loadPreferences();
+  applyTheme();
+  applyFontSize();
+  applyReadingFont();
+  syncVersionMobileBtn();
+
+  const data = await loadVersion(state.version);
+  state.bibleData = data;
+  loading.classList.add('hidden');
+
+  renderBookList();
+
+  // Restore last position
+  if (state.bookIdx !== null) {
+    renderChapterPills(state.bookIdx);
+    await renderChapter(state.bookIdx, state.chapterIdx);
+  }
+}
+
+// ──────────────────────────────────────────────
+// PREFERENCES
+// ──────────────────────────────────────────────
+function savePreferences() {
+  localStorage.setItem('holyread_prefs', JSON.stringify({
+    version: state.version,
+    bookIdx: state.bookIdx,
+    chapterIdx: state.chapterIdx,
+    theme: state.theme,
+    fontSize: state.fontSize,
+    fontKey: state.fontKey,
+    autoAdvance: state.autoAdvance,
+    autoRestart: state.autoRestart,
+  }));
+}
+
+function loadPreferences() {
+  try {
+    const p = JSON.parse(localStorage.getItem('holyread_prefs') || '{}');
+    if (p.version) state.version = p.version;
+    if (p.bookIdx !== undefined) state.bookIdx = p.bookIdx;
+    if (p.chapterIdx !== undefined) state.chapterIdx = p.chapterIdx;
+    if (p.theme) state.theme = p.theme;
+    if (p.fontSize) state.fontSize = p.fontSize;
+    if (p.fontKey) state.fontKey = p.fontKey;
+    if (p.autoAdvance !== undefined) state.autoAdvance = p.autoAdvance;
+    if (p.autoRestart !== undefined) state.autoRestart = p.autoRestart;
+    $('version-select').value = state.version;
+    $('font-slider').value = state.fontSize;
+    updateFontPreview();
+  } catch {}
+}
+
+// ──────────────────────────────────────────────
+// THEME
+// ──────────────────────────────────────────────
+function applyTheme() {
+  document.body.setAttribute('data-theme', state.theme);
+  $('theme-btn').textContent = state.theme === 'dark' ? '☀️' : '🌙';
+}
+
+$('theme-btn').addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  savePreferences();
+});
+
+// ──────────────────────────────────────────────
+// FONT SIZE
+// ──────────────────────────────────────────────
+function applyFontSize() {
+  document.documentElement.style.setProperty('--font-size', state.fontSize + 'px');
+  $('font-slider').value = state.fontSize;
+  updateFontPreview();
+}
+
+function updateFontPreview() {
+  const s = state.fontSize;
+  const label = s <= 13 ? 'Muito pequena' : s <= 15 ? 'Pequena' : s <= 18 ? 'Normal' : s <= 21 ? 'Grande' : 'Muito grande';
+  $('font-preview').textContent = label + ' (' + s + 'px)';
+  $('font-preview').style.fontSize = Math.min(s, 18) + 'px';
+}
+
+$('font-slider').addEventListener('input', e => {
+  state.fontSize = parseInt(e.target.value);
+  applyFontSize();
+  savePreferences();
+});
+
+$('font-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  $('font-panel').classList.toggle('open');
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#font-panel') && !e.target.closest('#font-btn')) {
+    $('font-panel').classList.remove('open');
+  }
+});
+
+// ──────────────────────────────────────────────
+// READING FONT
+// ──────────────────────────────────────────────
+function applyReadingFont() {
+  const font = FONTS.find(f => f.key === state.fontKey) || FONTS[0];
+  document.documentElement.style.setProperty('--reading-font', font.family);
+  document.querySelectorAll('.font-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.font === state.fontKey);
+  });
+}
+
+$('font-cards').addEventListener('click', e => {
+  const card = e.target.closest('.font-card');
+  if (!card) return;
+  state.fontKey = card.dataset.font;
+  applyReadingFont();
+  savePreferences();
+});
+
+// ──────────────────────────────────────────────
+// BOOK LIST
+// ──────────────────────────────────────────────
+function getBookNames() {
+  const lang = VERSION_LANG[state.version];
+  return BOOK_NAMES[lang] || BOOK_NAMES.pt;
+}
+
+function renderBookList(filter = '') {
+  const names = getBookNames();
+  const fl = filter.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  bookList.innerHTML = '';
+
+  const renderGroup = (label, start, end) => {
+    const books = [];
+    for (let i = start; i <= end; i++) {
+      const name = names[i];
+      const norm = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (!fl || norm.includes(fl)) books.push({ i, name });
+    }
+    if (!books.length) return;
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="testament-label">${label}</div>`;
+    books.forEach(({ i, name }) => {
+      const btn = document.createElement('button');
+      btn.className = 'book-btn' + (state.bookIdx === i ? ' active' : '');
+      btn.textContent = name;
+      btn.addEventListener('click', () => selectBook(i));
+      div.appendChild(btn);
+    });
+    bookList.appendChild(div);
+  };
+
+  const otLabel = { pt: 'Antigo Testamento', en: 'Old Testament', es: 'Antiguo Testamento', fr: 'Ancien Testament' };
+  const ntLabel = { pt: 'Novo Testamento', en: 'New Testament', es: 'Nuevo Testamento', fr: 'Nouveau Testament' };
+  const lang = VERSION_LANG[state.version];
+  renderGroup(otLabel[lang], 0, OT_END);
+  renderGroup(ntLabel[lang], OT_END + 1, 65);
+}
+
+$('book-filter').addEventListener('input', e => renderBookList(e.target.value));
+
+// ──────────────────────────────────────────────
+// SELECT BOOK
+// ──────────────────────────────────────────────
+async function selectBook(idx) {
+  state.bookIdx = idx;
+  state.chapterIdx = 0;
+  savePreferences();
+  renderBookList($('book-filter').value);
+  renderChapterPills(idx);
+  await renderChapter(idx, 0);
+  if (window.innerWidth < 768) closeMobileSidebar();
+}
+
+// ──────────────────────────────────────────────
+// CHAPTER PILLS
+// ──────────────────────────────────────────────
+function renderChapterPills(bookIdx) {
+  const book = state.bibleData[bookIdx];
+  const names = getBookNames();
+  bookTitle.innerHTML = names[bookIdx] + `<span class="version-badge">${VERSION_LABEL[state.version]}</span>`;
+
+  chapterPills.innerHTML = '';
+  book.chapters.forEach((_, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ch-pill' + (state.chapterIdx === i ? ' active' : '');
+    btn.textContent = i + 1;
+    btn.addEventListener('click', () => selectChapter(i));
+    chapterPills.appendChild(btn);
+  });
+  updateChapterMobileBtn();
+}
+
+function updateChapterMobileBtn() {
+  const numEl = $('chapter-mobile-num');
+  if (numEl) numEl.textContent = (state.chapterIdx + 1);
+}
+
+async function selectChapter(idx) {
+  state.chapterIdx = idx;
+  savePreferences();
+  document.querySelectorAll('#chapter-pills .ch-pill').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+  updateChapterMobileBtn();
+  await renderChapter(state.bookIdx, idx);
+}
+
+// ──────────────────────────────────────────────
+// CHAPTER SHEET (mobile floating chapter picker)
+// ──────────────────────────────────────────────
+const chapterSheet = $('chapter-sheet');
+const chapterSheetGrid = $('chapter-sheet-grid');
+const chapterSheetBook = $('chapter-sheet-book');
+
+function openChapterSheet() {
+  if (state.bookIdx === null || !state.bibleData) {
+    showToast('Selecione um livro primeiro');
+    return;
+  }
+  const book = state.bibleData[state.bookIdx];
+  const names = getBookNames();
+  chapterSheetBook.textContent = names[state.bookIdx];
+  chapterSheetGrid.innerHTML = '';
+  book.chapters.forEach((_, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ch-pill' + (state.chapterIdx === i ? ' active' : '');
+    btn.textContent = i + 1;
+    btn.addEventListener('click', () => {
+      closeChapterSheet();
+      selectChapter(i);
+    });
+    chapterSheetGrid.appendChild(btn);
+  });
+  chapterSheet.classList.add('open');
+  // Scroll active chapter into view inside sheet
+  setTimeout(() => {
+    const active = chapterSheetGrid.querySelector('.ch-pill.active');
+    if (active) active.scrollIntoView({ block: 'center' });
+  }, 50);
+}
+
+function closeChapterSheet() {
+  chapterSheet.classList.remove('open');
+}
+
+$('chapter-mobile-btn').addEventListener('click', openChapterSheet);
+$('chapter-sheet-close').addEventListener('click', closeChapterSheet);
+$('chapter-sheet-backdrop').addEventListener('click', closeChapterSheet);
+
+// ──────────────────────────────────────────────
+// RENDER CHAPTER
+// ──────────────────────────────────────────────
+async function renderChapter(bookIdx, chapterIdx) {
+  const book = state.bibleData[bookIdx];
+  const verses = book.chapters[chapterIdx];
+
+  clearSelection();
+  versesContainer.innerHTML = '';
+  const frag = document.createDocumentFragment();
+
+  verses.forEach((text, i) => {
+    const div = document.createElement('div');
+    div.className = 'verse-block';
+    div.dataset.verse = i;
+    div.innerHTML = `<span class="verse-num">${i + 1}</span><span class="verse-text">${escapeHtml(text)}</span>`;
+    div.addEventListener('click', () => toggleVerseSelect(div, i));
+    frag.appendChild(div);
+  });
+
+  versesContainer.appendChild(frag);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (state.ttsActive) {
+    state.ttsVerseIdx = 0;
+    stopTTS();
+    updateTTSBar();
+  }
+}
+
+function escapeHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ──────────────────────────────────────────────
+// VERSE SELECTION + SHARE
+// ──────────────────────────────────────────────
+function toggleVerseSelect(el, idx) {
+  if (state.selectedVerses.has(idx)) {
+    state.selectedVerses.delete(idx);
+    el.classList.remove('selected');
+  } else {
+    state.selectedVerses.add(idx);
+    el.classList.add('selected');
+  }
+  updateShareBar();
+}
+
+function clearSelection() {
+  state.selectedVerses.clear();
+  document.querySelectorAll('.verse-block.selected').forEach(e => e.classList.remove('selected'));
+  updateShareBar();
+}
+
+function updateShareBar() {
+  const shareBar = $('share-bar');
+  const n = state.selectedVerses.size;
+  if (n === 0) {
+    shareBar.classList.remove('visible');
+    ttsBar.style.bottom = '';
+    return;
+  }
+  shareBar.classList.add('visible');
+  shareBar.classList.toggle('full', !state.sidebarOpen || window.innerWidth < 768);
+  // Push TTS bar up so they don't overlap
+  if (state.ttsActive) ttsBar.style.bottom = '54px';
+  const lang = VERSION_LANG[state.version];
+  const noun = { pt: n === 1 ? 'versículo' : 'versículos', en: n === 1 ? 'verse' : 'verses', es: n === 1 ? 'versículo' : 'versículos', fr: n === 1 ? 'verset' : 'versets' };
+  $('share-count').textContent = `${n} ${noun[lang] || 'versículo(s)'} selecionado(s)`;
+  // Show "Original" only when exactly 1 verse is selected
+  $('share-original').style.display = n === 1 ? 'flex' : 'none';
+}
+
+function buildShareText() {
+  const names = getBookNames();
+  const bookName = names[state.bookIdx];
+  const verses = state.bibleData[state.bookIdx].chapters[state.chapterIdx];
+  const sorted = [...state.selectedVerses].sort((a, b) => a - b);
+
+  const vFull = VERSION_FULL[state.version] || VERSION_LABEL[state.version];
+  if (sorted.length === 1) {
+    const vi = sorted[0];
+    return `"${verses[vi]}"\n— ${bookName} ${state.chapterIdx + 1}:${vi + 1} (${vFull})`;
+  }
+
+  const lines = sorted.map(vi => `${vi + 1} ${verses[vi]}`);
+  const firstV = sorted[0] + 1, lastV = sorted[sorted.length - 1] + 1;
+  const range = firstV === lastV ? `${firstV}` : `${firstV}-${lastV}`;
+  return `${bookName} ${state.chapterIdx + 1}:${range} (${vFull})\n\n${lines.join('\n')}`;
+}
+
+$('share-clear').addEventListener('click', () => { clearSelection(); ttsBar.style.bottom = ''; });
+
+function doShare(fn) {
+  fn();
+  clearSelection();
+  ttsBar.style.bottom = '';
+}
+
+$('share-copy').addEventListener('click', () => doShare(() => {
+  navigator.clipboard?.writeText(buildShareText());
+  showToast('Versículos copiados! 📋');
+}));
+
+$('share-whatsapp').addEventListener('click', () => doShare(() => {
+  window.open(`https://wa.me/?text=${encodeURIComponent(buildShareText())}`, '_blank');
+}));
+
+$('share-twitter').addEventListener('click', () => doShare(() => {
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(buildShareText())}`, '_blank');
+}));
+
+$('share-facebook').addEventListener('click', () => doShare(() => {
+  window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(buildShareText())}`, '_blank');
+}));
+
+// ──────────────────────────────────────────────
+// VERSION CHANGE
+// ──────────────────────────────────────────────
+$('version-select').addEventListener('change', async e => {
+  state.version = e.target.value;
+  syncVersionMobileBtn();
+  savePreferences();
+  loading.classList.remove('hidden');
+  const data = await loadVersion(state.version);
+  state.bibleData = data;
+  loading.classList.add('hidden');
+  renderBookList($('book-filter').value);
+  if (state.bookIdx !== null) {
+    renderChapterPills(state.bookIdx);
+    await renderChapter(state.bookIdx, state.chapterIdx);
+  }
+});
+
+// ──────────────────────────────────────────────
+// SIDEBAR TOGGLE
+// ──────────────────────────────────────────────
+$('sidebar-toggle').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const isMobileView = window.matchMedia('(max-width: 768px)').matches;
+  if (isMobileView) {
+    const willOpen = !sidebar.classList.contains('mobile-open');
+    sidebar.classList.toggle('mobile-open', willOpen);
+    overlay.classList.toggle('show', willOpen);
+  } else {
+    state.sidebarOpen = !state.sidebarOpen;
+    sidebar.classList.toggle('collapsed', !state.sidebarOpen);
+    main.classList.toggle('full', !state.sidebarOpen);
+    const goFull = !state.sidebarOpen;
+    if (state.ttsActive) ttsBar.classList.toggle('full', goFull);
+    if (state.selectedVerses.size) $('share-bar').classList.toggle('full', goFull);
+  }
+});
+
+overlay.addEventListener('click', closeMobileSidebar);
+function closeMobileSidebar() {
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('show');
+}
+
+// ──────────────────────────────────────────────
+// SEARCH
+// ──────────────────────────────────────────────
+let searchTimeout;
+searchBox.addEventListener('input', e => {
+  clearTimeout(searchTimeout);
+  const q = e.target.value.trim();
+  if (!q) { closeSearch(); return; }
+  searchTimeout = setTimeout(() => performSearch(q), 350);
+});
+
+searchBox.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeSearch(); searchBox.value = ''; }
+});
+
+function closeSearch() {
+  searchPanel.classList.remove('open');
+  state.searchOpen = false;
+}
+
+$('close-search').addEventListener('click', closeSearch);
+
+async function performSearch(query) {
+  if (!state.bibleData) return;
+  searchResults.innerHTML = '<div class="no-results">Buscando...</div>';
+  searchPanel.classList.add('open');
+
+  // Try reference parse: "João 3:16", "jn 3 16", "Gn1:1"
+  const ref = parseReference(query);
+  if (ref) {
+    const { bookIdx, chapter, verse } = ref;
+    const book = state.bibleData[bookIdx];
+    if (book && book.chapters[chapter]) {
+      const verses = book.chapters[chapter];
+      if (verse !== null && verses[verse]) {
+        navigateToVerse(bookIdx, chapter, verse);
+        closeSearch();
+        return;
+      }
+    }
+  }
+
+  // Full text search
+  const q = query.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const names = getBookNames();
+  const results = [];
+
+  for (let bi = 0; bi < state.bibleData.length && results.length < 40; bi++) {
+    const book = state.bibleData[bi];
+    for (let ci = 0; ci < book.chapters.length && results.length < 40; ci++) {
+      for (let vi = 0; vi < book.chapters[ci].length && results.length < 40; vi++) {
+        const text = book.chapters[ci][vi];
+        const norm = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        if (norm.includes(q)) {
+          results.push({ bi, ci, vi, text, name: names[bi] });
+        }
+      }
+    }
+  }
+
+  if (!results.length) {
+    searchResults.innerHTML = '<div class="no-results">Nenhum resultado encontrado.<br>Tente outras palavras.</div>';
+    return;
+  }
+
+  searchResults.innerHTML = '';
+  results.forEach(({ bi, ci, vi, text, name }) => {
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    const highlighted = text.replace(new RegExp(`(${escapeRegex(query)})`, 'gi'), '<mark>$1</mark>');
+    card.innerHTML = `<div class="result-ref">${name} ${ci + 1}:${vi + 1}</div><div class="result-text">${highlighted}</div>`;
+    card.addEventListener('click', () => {
+      navigateToVerse(bi, ci, vi);
+      closeSearch();
+      searchBox.value = '';
+    });
+    searchResults.appendChild(card);
+  });
+
+  const count = document.createElement('div');
+  count.style.cssText = 'font-size:0.75rem;color:var(--text3);text-align:center;padding:8px';
+  count.textContent = results.length >= 40 ? '40+ resultados encontrados' : `${results.length} resultado(s)`;
+  searchResults.prepend(count);
+}
+
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseReference(q) {
+  const names = getBookNames();
+  const lang = VERSION_LANG[state.version];
+  const allNames = [...BOOK_NAMES.pt, ...BOOK_NAMES.en, ...BOOK_NAMES.es, ...BOOK_NAMES.fr];
+
+  // Pattern: "Book chapter:verse" or "Book chapter verse"
+  const m = q.match(/^(.+?)\s+(\d+)[:\s,](\d+)$/i) || q.match(/^(.+?)\s*(\d+):(\d+)$/i);
+  if (m) {
+    const bookQ = m[1].trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const chapter = parseInt(m[2]) - 1;
+    const verse = parseInt(m[3]) - 1;
+
+    for (let lang2 of ['pt','en','es','fr']) {
+      for (let i = 0; i < 66; i++) {
+        const norm = BOOK_NAMES[lang2][i].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        if (norm.startsWith(bookQ) || norm === bookQ) {
+          return { bookIdx: i, chapter, verse };
+        }
+      }
+    }
+    // Try abbrev
+    if (state.bibleData) {
+      for (let i = 0; i < state.bibleData.length; i++) {
+        const abbrev = state.bibleData[i].abbrev.toLowerCase();
+        if (abbrev === bookQ || abbrev.startsWith(bookQ)) {
+          return { bookIdx: i, chapter, verse };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+async function navigateToVerse(bookIdx, chapterIdx, verseIdx) {
+  state.bookIdx = bookIdx;
+  state.chapterIdx = chapterIdx;
+  savePreferences();
+  renderBookList($('book-filter').value);
+  renderChapterPills(bookIdx);
+  await renderChapter(bookIdx, chapterIdx);
+  setTimeout(() => {
+    const el = versesContainer.querySelector(`[data-verse="${verseIdx}"]`);
+    if (el) {
+      highlightTTSVerse(verseIdx);
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
+}
+
+// ──────────────────────────────────────────────
+// MOBILE LAYOUT
+// ──────────────────────────────────────────────
+function isMobile() { return window.innerWidth < 768; }
+function isLandscape() { return window.innerWidth <= 900 && window.innerWidth > window.innerHeight; }
+
+// Sync the compact version button text
+function syncVersionMobileBtn() {
+  const btn = $('version-mobile-btn');
+  if (btn) btn.textContent = VERSION_LABEL[state.version];
+}
+
+// ──────────────────────────────────────────────
+// ORIGINAL SHEET (Hebrew / Greek study)
+// ──────────────────────────────────────────────
+const originalSheet = $('original-sheet');
+const originalText = $('original-text');
+const originalWords = $('original-words');
+const originalSheetTitle = $('original-sheet-title');
+const originalAttrib = $('original-attrib');
+const originalTranslitToggle = $('original-translit-toggle');
+
+let originalState = { lang: null, data: null, mode: 'eras' };
+
+function _osisRefLabel(bookIdx, chapterIdx, verseIdx) {
+  const names = getBookNames();
+  return `${names[bookIdx]} ${chapterIdx + 1}:${verseIdx + 1}`;
+}
+
+async function openOriginalSheet(bookIdx, chapterIdx, verseIdx) {
+  if (state.bibleData == null) return;
+  const isOT = bookIdx <= OT_END;
+  const lang = isOT ? 'he' : 'grc';
+  originalSheetTitle.textContent =
+    (isOT ? 'Hebraico — ' : 'Grego — ') + _osisRefLabel(bookIdx, chapterIdx, verseIdx);
+  originalText.textContent = '';
+  originalText.className = 'original-text ' + (isOT ? 'rtl' : 'ltr');
+  originalWords.innerHTML = '<div id="original-loading">Carregando…</div>';
+
+  // Show the verse in the user's currently-active translation at the top
+  const trEl = $('original-translation');
+  const versionFull = VERSION_FULL[state.version] || VERSION_LABEL[state.version];
+  let translationText = '';
+  try {
+    translationText = (state.bibleData[bookIdx]?.chapters?.[chapterIdx]?.[verseIdx]) || '';
+  } catch {}
+  if (translationText) {
+    trEl.innerHTML = `<span class="original-translation-label">${escapeHtml(versionFull)}</span>${escapeHtml(translationText)}`;
+  } else {
+    trEl.innerHTML = `<span class="original-translation-empty">— tradução indisponível —</span>`;
+  }
+
+  originalAttrib.innerHTML = isOT
+    ? 'Texto: WLC (morphhb, CC BY 4.0) · Glossa: STEPBible TBESH (CC BY 4.0)'
+    : 'Texto: SBLGNT (CC BY 4.0) · Morf: MorphGNT (CC BY-SA 3.0) · Glossa: TBESG (CC BY 4.0)';
+
+  // Configure the toggle per language. Default mode is sticky across opens.
+  const btns = originalTranslitToggle.querySelectorAll('button');
+  if (isOT) {
+    btns[0].textContent = 'Hebraico';      btns[0].dataset.mode = 'native';
+    btns[1].textContent = 'Transliteração'; btns[1].dataset.mode = 'translit';
+    if (!['native','translit'].includes(originalState.mode)) originalState.mode = 'native';
+  } else {
+    btns[0].textContent = 'Erasmiana'; btns[0].dataset.mode = 'eras';
+    btns[1].textContent = 'Moderna';   btns[1].dataset.mode = 'mod';
+    if (!['eras','mod'].includes(originalState.mode)) originalState.mode = 'eras';
+  }
+  btns.forEach(b => b.classList.toggle('active', b.dataset.mode === originalState.mode));
+  originalTranslitToggle.style.display = 'inline-flex';
+  originalSheet.classList.add('open');
+  // reset scroll to top of the sheet content
+  const scrollEl = $('original-scroll');
+  if (scrollEl) scrollEl.scrollTop = 0;
+
+  const userLang = VERSION_LANG[state.version] || 'en';
+  let data;
+  try {
+    data = isOT
+      ? await window.HolyReadAPI.hebrew(bookIdx, chapterIdx, verseIdx, userLang)
+      : await window.HolyReadAPI.greek(bookIdx, chapterIdx, verseIdx, userLang);
+  } catch (e) {
+    originalWords.innerHTML = `<div id="original-empty">${e.status === 404
+      ? 'Dados originais não disponíveis para este versículo.'
+      : 'Erro ao buscar texto original. Verifique o backend.'}</div>`;
+    return;
+  }
+
+  originalState = { lang, data, mode: originalState.mode };
+  renderOriginalSheet();
+}
+
+function renderOriginalSheet() {
+  const { lang, data, mode } = originalState;
+  if (!data) return;
+  originalText.textContent = data.text || '';
+  originalText.className = 'original-text ' + (lang === 'he' ? 'rtl' : 'ltr');
+
+  originalWords.innerHTML = '';
+  if (!data.words || !data.words.length) {
+    originalWords.innerHTML = '<div id="original-empty">Sem palavras analisadas.</div>';
+    return;
+  }
+  data.words.forEach(w => {
+    const card = document.createElement('div');
+    card.className = 'original-word';
+    const translit =
+      lang === 'he' ? (w.translit || '') :
+      mode === 'mod' ? (w.translit_mod || '') : (w.translit_eras || '');
+
+    const meta = [];
+    if (lang === 'he' && w.morphemes && w.morphemes.length > 1) {
+      // morpheme breakdown rendered separately
+    } else if (w.lemma) {
+      meta.push(`<span class="ow-meta-tag"><span class="ow-meta-label">Lemma</span><span class="ow-meta-val">${escapeHtml(w.lemma)}</span></span>`);
+    }
+    if (w.strongs) meta.push(`<span class="ow-meta-tag"><span class="ow-meta-label">Strong</span><span class="ow-meta-val">${escapeHtml(w.strongs)}</span></span>`);
+    if (w.morph)  meta.push(`<span class="ow-meta-tag"><span class="ow-meta-label">Morf</span><span class="ow-meta-val">${escapeHtml(w.morph)}</span></span>`);
+
+    let morphemesHtml = '';
+    if (lang === 'he' && w.morphemes && w.morphemes.length) {
+      morphemesHtml = '<div class="ow-morphemes">';
+      w.morphemes.forEach(m => {
+        morphemesHtml += `<div class="ow-morpheme-row">
+          <span class="ow-morpheme-text rtl">${escapeHtml(m.text)}</span>
+          <span class="ow-morpheme-meta">${m.lemma ? 'H' + escapeHtml(m.lemma) : ''} ${m.morph ? '· ' + escapeHtml(m.morph) : ''}</span>
+        </div>`;
+      });
+      morphemesHtml += '</div>';
+    }
+
+    const glossText = w.gloss || '';
+    card.innerHTML = `
+      <div class="original-word-main">
+        <span class="ow-text ${lang === 'he' ? 'rtl' : 'ltr'}">${escapeHtml(w.text)}</span>
+        <span class="ow-translit">${escapeHtml(translit)}</span>
+        ${glossText ? `<span class="ow-gloss">→ ${escapeHtml(glossText)}</span>` : ''}
+      </div>
+      ${meta.length ? `<div class="ow-meta">${meta.join('')}</div>` : ''}
+      ${morphemesHtml}
+    `;
+    originalWords.appendChild(card);
+  });
+}
+
+function closeOriginalSheet() {
+  originalSheet.classList.remove('open');
+  // stop any TTS started from inside the sheet
+  try { window.speechSynthesis.cancel(); } catch {}
+}
+
+$('original-sheet-close').addEventListener('click', closeOriginalSheet);
+$('original-sheet-backdrop').addEventListener('click', closeOriginalSheet);
+
+originalTranslitToggle.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    originalTranslitToggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    originalState.mode = btn.dataset.mode;
+    renderOriginalSheet();
+  });
+});
+
+function _stripMacrons(s) {
+  return (s || '').normalize('NFD').replace(/[̄̃]/g, '').normalize('NFC');
+}
+
+// Strip Hebrew cantillation (te'amim) and miscellaneous marks that confuse
+// mobile TTS engines into reading letter-by-letter. Keep niqqud (vowels) and
+// shin/sin dots so the speech engine still has the vowel structure.
+function _cleanHebrewForTTS(s) {
+  if (!s) return '';
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    // Cantillation block
+    if (c >= 0x0591 && c <= 0x05AF) continue;
+    // Meteg, rafe, paseq, sof pasuq, special marks (NOT shin/sin dot 05C1/05C2)
+    if (c === 0x05BD || c === 0x05BF || c === 0x05C0 || c === 0x05C3) continue;
+    if (c >= 0x05C4 && c <= 0x05C6) continue;
+    out += s[i];
+  }
+  return out;
+}
+
+function _pickVoice(targetLang) {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || !voices.length) return null;
+  const exact = voices.find(v => v.lang === targetLang);
+  if (exact) return exact;
+  const prefix = targetLang.split('-')[0];
+  return voices.find(v => v.lang === prefix || v.lang.startsWith(prefix + '-')) || null;
+}
+
+function _waitForVoices(timeoutMs = 1000) {
+  const synth = window.speechSynthesis;
+  if (synth.getVoices().length) return Promise.resolve();
+  return new Promise(resolve => {
+    let done = false;
+    const finish = () => { if (done) return; done = true; resolve(); };
+    synth.addEventListener('voiceschanged', finish, { once: true });
+    setTimeout(finish, timeoutMs);
+  });
+}
+
+$('original-tts-btn').addEventListener('click', async () => {
+  if (!originalState.data) return;
+  await _waitForVoices();
+  const { lang, data, mode } = originalState;
+
+  // Build candidate (text, lang) pairs in priority order.
+  let candidates = [];
+  if (lang === 'he') {
+    if (mode === 'translit') {
+      const tr = (data.words || []).map(w => _stripMacrons(w.translit)).join(' ');
+      candidates = [
+        [tr, 'it-IT', 'transliteração (it)'],
+        [tr, 'es-ES', 'transliteração (es)'],
+        [tr, 'en-US', 'transliteração (en)'],
+      ];
+    } else {
+      // Strip cantillation — many mobile he-IL voices read it letter-by-letter
+      const cleaned = _cleanHebrewForTTS(data.text);
+      const tr = (data.words || []).map(w => _stripMacrons(w.translit)).join(' ');
+      candidates = [
+        [cleaned, 'he-IL', 'hebraico nativo'],
+        // Final fallback: speak transliteration with Italian voice
+        [tr, 'it-IT', 'transliteração'],
+      ];
+    }
+  } else if (mode === 'mod') {
+    candidates = [
+      [data.text, 'el-GR', 'grego moderno'],
+      // No el voice → speak Modern transliteration with Italian voice (close phonetics)
+      [(data.words || []).map(w => w.translit_mod).join(' '), 'it-IT', 'transliteração moderna'],
+    ];
+  } else {
+    // Erasmian — Italian voice reads Latin-transliterated Greek much better than English does
+    const text = (data.words || []).map(w => _stripMacrons(w.translit_eras)).join(' ');
+    candidates = [
+      [text, 'it-IT', 'erasmiana (it-IT)'],
+      [text, 'es-ES', 'erasmiana (es)'],
+      [text, 'la',    'erasmiana (latim)'],
+      [text, 'en-US', 'erasmiana (en-US)'],
+    ];
+  }
+
+  let chosen = null;
+  for (const [text, vl, _label] of candidates) {
+    const voice = _pickVoice(vl);
+    if (voice && text) {
+      chosen = { text, voice, lang: vl };
+      break;
+    }
+  }
+  // Final fallback: speak with default voice using primary text/lang
+  if (!chosen) {
+    const [text, vl] = candidates[0];
+    if (text) chosen = { text, voice: null, lang: vl };
+  }
+  if (!chosen) {
+    showToast('Não foi possível pronunciar este texto');
+    return;
+  }
+
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(chosen.text);
+    u.lang = chosen.lang;
+    u.rate = 0.82;
+    if (chosen.voice) u.voice = chosen.voice;
+    window.speechSynthesis.speak(u);
+  } catch {}
+});
+
+$('share-original').addEventListener('click', () => {
+  const sel = [...state.selectedVerses].sort((a, b) => a - b);
+  if (sel.length !== 1 || state.bookIdx == null) return;
+  openOriginalSheet(state.bookIdx, state.chapterIdx, sel[0]);
+});
+
+// ──────────────────────────────────────────────
+// VERSION SHEET (mobile version/language picker)
+// ──────────────────────────────────────────────
+const versionSheet = $('version-sheet');
+const versionSheetList = $('version-sheet-list');
+
+const VERSION_GROUPS = [
+  { label: '🇧🇷 Português', items: [
+    { code: 'pt_nvi', name: 'Nova Versão Internacional' },
+    { code: 'pt_aa',  name: 'Almeida Atualizada' },
+    { code: 'pt_acf', name: 'Almeida Corrigida Fiel' },
+  ]},
+  { label: '🇺🇸 English', items: [
+    { code: 'en_kjv', name: 'King James Version' },
+    { code: 'en_bbe', name: 'Bible in Basic English' },
+  ]},
+  { label: '🇪🇸 Español', items: [
+    { code: 'es_rvr', name: 'Reina-Valera Revisada' },
+  ]},
+  { label: '🇫🇷 Français', items: [
+    { code: 'fr_apee', name: 'Alliance Permanente' },
+  ]},
+];
+
+function openVersionSheet() {
+  versionSheetList.innerHTML = '';
+  VERSION_GROUPS.forEach(group => {
+    const groupDiv = document.createElement('div');
+    groupDiv.className = 'version-group';
+    const lbl = document.createElement('div');
+    lbl.className = 'version-group-label';
+    lbl.textContent = group.label;
+    groupDiv.appendChild(lbl);
+    group.items.forEach(item => {
+      const row = document.createElement('button');
+      row.className = 'version-row' + (state.version === item.code ? ' active' : '');
+      row.innerHTML = `<span class="version-row-name">${item.name}</span><span class="version-row-code">${VERSION_LABEL[item.code]}</span>`;
+      row.addEventListener('click', () => {
+        closeVersionSheet();
+        if (state.version === item.code) return;
+        const sel = $('version-select');
+        sel.value = item.code;
+        sel.dispatchEvent(new Event('change'));
+      });
+      groupDiv.appendChild(row);
+    });
+    versionSheetList.appendChild(groupDiv);
+  });
+  versionSheet.classList.add('open');
+}
+
+function closeVersionSheet() {
+  versionSheet.classList.remove('open');
+}
+
+$('version-mobile-btn').addEventListener('click', openVersionSheet);
+$('version-sheet-close').addEventListener('click', closeVersionSheet);
+$('version-sheet-backdrop').addEventListener('click', closeVersionSheet);
+
+// Mobile search bar
+const mobileSearchBar = $('mobile-search-bar');
+const mobileSearchInput = $('mobile-search-input');
+
+$('mobile-search-btn').addEventListener('click', () => {
+  mobileSearchBar.classList.add('open');
+  $('chapter-nav').classList.add('search-open');
+  searchPanel.classList.add('mobile-with-search');
+  mobileSearchInput.focus();
+});
+
+$('mobile-search-close').addEventListener('click', () => {
+  mobileSearchBar.classList.remove('open');
+  $('chapter-nav').classList.remove('search-open');
+  searchPanel.classList.remove('mobile-with-search');
+  mobileSearchInput.value = '';
+  closeSearch();
+});
+
+let mobileSearchTimeout;
+mobileSearchInput.addEventListener('input', e => {
+  clearTimeout(mobileSearchTimeout);
+  const q = e.target.value.trim();
+  if (!q) { closeSearch(); return; }
+  mobileSearchTimeout = setTimeout(() => performSearch(q), 350);
+});
+
+mobileSearchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    mobileSearchBar.classList.remove('open');
+    $('chapter-nav').classList.remove('search-open');
+    mobileSearchInput.value = '';
+    closeSearch();
+  }
+});
+
+// Mobile TTS button in chapter nav
+$('mobile-tts-trigger').addEventListener('click', () => {
+  if (state.bookIdx === null) { showToast('Selecione um livro primeiro'); return; }
+  state.ttsActive = !state.ttsActive;
+  const btn = $('mobile-tts-trigger');
+  if (state.ttsActive) {
+    ttsBar.classList.add('visible', 'full');
+    btn.style.background = 'var(--accent2)';
+    updateTTSBar(); loadVoices();
+  } else {
+    stopTTS();
+    ttsBar.classList.remove('visible', 'full');
+    btn.style.background = 'var(--accent)';
+  }
+});
+
+// ──────────────────────────────────────────────
+// VIEWPORT CHANGE — keep state coherent across rotation/resize
+// ──────────────────────────────────────────────
+let lastViewport = null;
+function getViewport() {
+  if (window.matchMedia('(max-width: 768px)').matches) return 'portrait-mobile';
+  if (window.matchMedia('(max-width: 900px) and (orientation: landscape)').matches) return 'landscape-mobile';
+  return 'desktop';
+}
+
+function handleViewportChange() {
+  const vp = getViewport();
+  const isMobileVp = vp !== 'desktop';
+  const crossed = lastViewport && lastViewport !== vp;
+
+  if (crossed) {
+    // Close any open transient UI — they may have wrong layout after viewport change
+    sidebar.classList.remove('mobile-open');
+    overlay.classList.remove('show');
+    mobileSearchBar.classList.remove('open');
+    $('chapter-nav').classList.remove('search-open');
+    searchPanel.classList.remove('mobile-with-search');
+    closeChapterSheet();
+    closeVersionSheet();
+    closeOriginalSheet();
+    closeSearch();
+    $('font-panel').classList.remove('open');
+
+    if (vp === 'desktop') {
+      // Restore desktop sidebar from persisted state
+      sidebar.classList.toggle('collapsed', !state.sidebarOpen);
+      main.classList.toggle('full', !state.sidebarOpen);
+      const goFull = !state.sidebarOpen;
+      if (state.ttsActive) ttsBar.classList.toggle('full', goFull);
+      if (state.selectedVerses.size) $('share-bar').classList.toggle('full', goFull);
+    } else {
+      // Mobile: ensure no leftover desktop classes
+      sidebar.classList.remove('collapsed');
+      main.classList.remove('full');
+      ttsBar.classList.add('full');
+      $('share-bar').classList.add('full');
+    }
+  }
+  lastViewport = vp;
+
+  // Always sync these — they depend on viewport
+  $('mobile-search-btn').style.display = vp === 'portrait-mobile' ? 'flex' : 'none';
+  syncVersionMobileBtn();
+}
+window.addEventListener('resize', handleViewportChange);
+window.addEventListener('orientationchange', handleViewportChange);
+handleViewportChange();
+
+// ──────────────────────────────────────────────
+// TEXT-TO-SPEECH — with best-voice selection
+// ──────────────────────────────────────────────
+const synth = window.speechSynthesis;
+
+// Score voice quality: Google Neural > Google > Enhanced/Premium > named > default
+function scoreVoice(v) {
+  const n = v.name.toLowerCase();
+  if (n.includes('google') && (n.includes('neural') || n.includes('wavenet'))) return 5;
+  if (n.includes('google')) return 4;
+  if (n.includes('enhanced') || n.includes('premium') || n.includes('siri')) return 3;
+  if (!v.localService) return 2; // cloud voice
+  return 1;
+}
+
+function getLangCode() {
+  return TTS_LANG[VERSION_LANG[state.version]] || 'pt-BR';
+}
+
+function loadVoices() {
+  const lang = getLangCode();
+  const baseLang = lang.split('-')[0];
+  let voices = synth.getVoices().filter(v =>
+    v.lang === lang || v.lang.startsWith(baseLang + '-') || v.lang.startsWith(baseLang)
+  );
+  if (!voices.length) voices = synth.getVoices(); // fallback to all
+
+  // Sort best first
+  voices.sort((a, b) => scoreVoice(b) - scoreVoice(a));
+  state.availableVoices = voices;
+  populateVoiceSelect(voices);
+}
+
+function populateVoiceSelect(voices) {
+  const sel = $('tts-voice');
+  const prev = sel.value;
+  sel.innerHTML = '';
+  voices.forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    let label = v.name.replace(/\s*\(.*?\)/g, '').trim();
+    if (scoreVoice(v) >= 4) label = '⭐ ' + label;
+    else if (scoreVoice(v) === 3) label = '✨ ' + label;
+    opt.textContent = label;
+    opt.title = `${v.name} [${v.lang}]`;
+    sel.appendChild(opt);
+  });
+  // Restore or pick best
+  const bestIdx = voices.findIndex(v => scoreVoice(v) === Math.max(...voices.map(scoreVoice)));
+  sel.value = prev !== '' && sel.querySelector(`option[value="${prev}"]`) ? prev : String(bestIdx >= 0 ? bestIdx : 0);
+}
+
+function getSelectedVoice() {
+  const idx = parseInt($('tts-voice').value);
+  return state.availableVoices[idx] || null;
+}
+
+// Voices load asynchronously in Chrome
+if (synth) {
+  synth.onvoiceschanged = loadVoices;
+  setTimeout(loadVoices, 200); // Safari fires no event
+}
+
+$('tts-toggle').addEventListener('click', () => {
+  if (!synth) { showToast('TTS não suportado neste navegador'); return; }
+  if (state.bookIdx === null) { showToast('Selecione um livro primeiro'); return; }
+  state.ttsActive = !state.ttsActive;
+  $('tts-toggle').classList.toggle('active', state.ttsActive);
+
+  if (state.ttsActive) {
+    ttsBar.classList.add('visible');
+    ttsBar.classList.toggle('full', !state.sidebarOpen || window.innerWidth < 768);
+    loadVoices();
+    updateTTSBar();
+  } else {
+    stopTTS();
+    ttsBar.classList.remove('visible');
+  }
+});
+
+$('tts-close').addEventListener('click', () => {
+  state.ttsActive = false;
+  $('tts-toggle').classList.remove('active');
+  stopTTS();
+  ttsBar.classList.remove('visible');
+});
+
+ttsPlay.addEventListener('click', () => {
+  if (!state.ttsPlaying) startTTS();
+  else pauseTTS();
+});
+
+$('tts-prev').addEventListener('click', () => {
+  if (state.ttsVerseIdx > 0) {
+    state.ttsVerseIdx--;
+    stopTTS();
+    startTTS();
+  }
+});
+
+$('tts-next').addEventListener('click', advanceTTS);
+
+// Reload voices when version changes (language may change)
+$('version-select').addEventListener('change', () => setTimeout(loadVoices, 100));
+$('tts-voice').addEventListener('change', () => {
+  if (state.ttsPlaying) { stopTTS(); setTimeout(startTTS, 80); }
+});
+
+function getVerses() {
+  if (state.bookIdx === null || !state.bibleData) return [];
+  return state.bibleData[state.bookIdx].chapters[state.chapterIdx] || [];
+}
+
+// ──────────────────────────────────────────────
+// CONFIRM DIALOG (promise-based)
+// ──────────────────────────────────────────────
+const confirmDialog = $('confirm-dialog');
+function askDialog({ title, message, icon = '📖', yesLabel = 'Continuar', noLabel = 'Parar' }) {
+  return new Promise(resolve => {
+    $('confirm-icon').textContent = icon;
+    $('confirm-title').textContent = title;
+    $('confirm-message').textContent = message;
+    $('confirm-yes').textContent = yesLabel;
+    $('confirm-no').textContent = noLabel;
+    $('confirm-remember').checked = true;
+    confirmDialog.classList.add('open');
+    const finish = (answer) => {
+      const remember = $('confirm-remember').checked;
+      $('confirm-yes').removeEventListener('click', onYes);
+      $('confirm-no').removeEventListener('click', onNo);
+      confirmDialog.classList.remove('open');
+      resolve({ answer, remember });
+    };
+    const onYes = () => finish(true);
+    const onNo  = () => finish(false);
+    $('confirm-yes').addEventListener('click', onYes);
+    $('confirm-no').addEventListener('click', onNo);
+  });
+}
+
+// ──────────────────────────────────────────────
+// AUTO-ADVANCE — next chapter / next book / restart bible
+// ──────────────────────────────────────────────
+function getNextChapterLocation() {
+  const book = state.bibleData[state.bookIdx];
+  if (state.chapterIdx + 1 < book.chapters.length) {
+    return { bookIdx: state.bookIdx, chapterIdx: state.chapterIdx + 1, isNewBook: false, isRestart: false };
+  }
+  if (state.bookIdx + 1 < state.bibleData.length) {
+    return { bookIdx: state.bookIdx + 1, chapterIdx: 0, isNewBook: true, isRestart: false };
+  }
+  return { bookIdx: 0, chapterIdx: 0, isNewBook: true, isRestart: true };
+}
+
+async function handleChapterEnd() {
+  state.ttsPlaying = false;
+  ttsPlay.textContent = '▶';
+  state.ttsVerseIdx = 0;
+  highlightTTSVerse(-1);
+
+  const next = getNextChapterLocation();
+  const names = getBookNames();
+  const nextLabel = `${names[next.bookIdx]} ${next.chapterIdx + 1}`;
+
+  let shouldAdvance;
+  if (next.isRestart) {
+    if (state.autoRestart === true)       shouldAdvance = true;
+    else if (state.autoRestart === false) shouldAdvance = false;
+    else {
+      const { answer, remember } = await askDialog({
+        icon: '🎉',
+        title: 'Bíblia inteira lida!',
+        message: `Deseja recomeçar do início? (${nextLabel})`,
+        yesLabel: 'Recomeçar',
+        noLabel: 'Encerrar',
+      });
+      if (remember) { state.autoRestart = answer; savePreferences(); }
+      shouldAdvance = answer;
+    }
+  } else {
+    if (state.autoAdvance === true)       shouldAdvance = true;
+    else if (state.autoAdvance === false) shouldAdvance = false;
+    else {
+      const { answer, remember } = await askDialog({
+        icon: '📖',
+        title: 'Continuar leitura?',
+        message: `Avançar para ${nextLabel}?`,
+        yesLabel: 'Continuar',
+        noLabel: 'Parar',
+      });
+      if (remember) { state.autoAdvance = answer; savePreferences(); }
+      shouldAdvance = answer;
+    }
+  }
+
+  if (!shouldAdvance) {
+    releaseWakeLock();
+    updateTTSProgress(0, getVerses().length);
+    return;
+  }
+
+  // Navigate to next chapter and resume TTS automatically
+  state.bookIdx = next.bookIdx;
+  state.chapterIdx = next.chapterIdx;
+  state.ttsVerseIdx = 0;
+  savePreferences();
+  renderBookList($('book-filter').value);
+  renderChapterPills(state.bookIdx);
+  await renderChapter(state.bookIdx, state.chapterIdx);
+  // renderChapter() called stopTTS(); restart with a small gap so the new utterance is queued cleanly
+  setTimeout(() => { if (state.ttsActive) startTTS(); }, 400);
+}
+
+// ──────────────────────────────────────────────
+// SCREEN WAKE LOCK — keep screen on during TTS
+// ──────────────────────────────────────────────
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  if (state.wakeLock) return;
+  try {
+    state.wakeLock = await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener('release', () => { state.wakeLock = null; });
+  } catch {}
+}
+
+async function releaseWakeLock() {
+  if (!state.wakeLock) return;
+  const lock = state.wakeLock;
+  state.wakeLock = null;
+  try { await lock.release(); } catch {}
+}
+
+// Browser auto-releases the lock when the tab is hidden — re-acquire on return
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.ttsPlaying) {
+    acquireWakeLock();
+  }
+});
+
+function startTTS() {
+  const verses = getVerses();
+  if (!verses.length) return;
+  if (state.ttsVerseIdx >= verses.length) state.ttsVerseIdx = 0;
+
+  acquireWakeLock();
+
+  const text = verses[state.ttsVerseIdx];
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = getLangCode();
+  u.rate = parseFloat($('tts-speed').value);
+  u.pitch = 1;
+
+  const voice = getSelectedVoice();
+  if (voice) u.voice = voice;
+
+  u.onstart = () => {
+    state.ttsPlaying = true;
+    ttsPlay.textContent = '⏸';
+    highlightTTSVerse(state.ttsVerseIdx);
+    updateTTSProgress(state.ttsVerseIdx, verses.length);
+    ttsVerseText.textContent = text;
+  };
+
+  u.onend = () => {
+    state.ttsVerseIdx++;
+    if (state.ttsVerseIdx < verses.length) {
+      setTimeout(() => startTTS(), 250);
+    } else {
+      handleChapterEnd();
+    }
+  };
+
+  u.onerror = e => {
+    if (e.error !== 'interrupted') {
+      state.ttsPlaying = false;
+      ttsPlay.textContent = '▶';
+    }
+  };
+
+  state.ttsUtterance = u;
+  synth.speak(u);
+}
+
+function pauseTTS() {
+  synth.cancel();
+  state.ttsPlaying = false;
+  ttsPlay.textContent = '▶';
+  releaseWakeLock();
+}
+
+function stopTTS() {
+  synth.cancel();
+  state.ttsPlaying = false;
+  ttsPlay.textContent = '▶';
+  highlightTTSVerse(-1);
+  releaseWakeLock();
+}
+
+function advanceTTS() {
+  const verses = getVerses();
+  stopTTS();
+  state.ttsVerseIdx = Math.min(state.ttsVerseIdx + 1, verses.length - 1);
+  if (state.ttsActive) setTimeout(startTTS, 80);
+}
+
+function highlightTTSVerse(idx) {
+  document.querySelectorAll('.verse-block.highlighted').forEach(e => e.classList.remove('highlighted'));
+  if (idx < 0) return;
+  const el = versesContainer.querySelector(`[data-verse="${idx}"]`);
+  if (el) {
+    el.classList.add('highlighted');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function updateTTSProgress(current, total) {
+  ttsFill.style.width = total > 0 ? (current / total) * 100 + '%' : '0%';
+}
+
+function updateTTSBar() {
+  const verses = getVerses();
+  if (verses.length) {
+    ttsVerseText.textContent = verses[state.ttsVerseIdx] || '—';
+    updateTTSProgress(state.ttsVerseIdx, verses.length);
+  }
+}
+
+$('tts-speed').addEventListener('change', () => {
+  if (state.ttsPlaying) { stopTTS(); setTimeout(startTTS, 80); }
+});
+
+// ──────────────────────────────────────────────
+// KEYBOARD SHORTCUTS
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (state.bookIdx !== null) {
+      const book = state.bibleData[state.bookIdx];
+      if (state.chapterIdx < book.chapters.length - 1) selectChapter(state.chapterIdx + 1);
+    }
+  }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (state.bookIdx !== null && state.chapterIdx > 0) selectChapter(state.chapterIdx - 1);
+  }
+  if (e.key === '/' && !e.metaKey) {
+    e.preventDefault();
+    searchBox.focus();
+  }
+  if (e.key === 'Escape') {
+    closeSearch();
+    closeChapterSheet();
+    closeVersionSheet();
+    closeOriginalSheet();
+    $('font-panel').classList.remove('open');
+  }
+});
+
+// ──────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ──────────────────────────────────────────────
+// SWIPE (mobile chapter nav)
+// ──────────────────────────────────────────────
+let touchStartX = 0;
+versesContainer.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+versesContainer.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60 && state.bookIdx !== null) {
+    const book = state.bibleData[state.bookIdx];
+    if (dx < 0 && state.chapterIdx < book.chapters.length - 1) selectChapter(state.chapterIdx + 1);
+    else if (dx > 0 && state.chapterIdx > 0) selectChapter(state.chapterIdx - 1);
+  }
+}, { passive: true });
+
+// ──────────────────────────────────────────────
+// START
+// ──────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

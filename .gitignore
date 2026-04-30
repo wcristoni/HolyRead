@@ -5,3 +5,10 @@ grafo_reis_israel.html
 preview.html
 reis_israel_grafo.json
 *.log
+backend/.venv/
+backend/data/raw/
+backend/data/glosses/_cache/
+backend/holyread_backend.egg-info/
+__pycache__/
+*.pyc
+.env

@@ -58,6 +58,19 @@
       const qs = `?lang=${encodeURIComponent(lang)}`;
       return await apiGet(`/api/original/greek/${book}/${chapter}/${verse}${qs}`);
     },
+    async ping(payload) {
+      // Best-effort, never throws — never blocks the page.
+      try {
+        await fetch(API_BASE + '/api/analytics/ping', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'omit',
+          mode: 'cors',
+          keepalive: true,
+          body: JSON.stringify(payload || {}),
+        });
+      } catch {}
+    },
   };
 
   window.HolyReadAPI = api;

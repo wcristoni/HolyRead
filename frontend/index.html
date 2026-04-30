@@ -151,10 +151,11 @@
     width: var(--sidebar-w); min-width: var(--sidebar-w);
     background: var(--surface);
     border-right: 1px solid var(--border);
-    position: fixed; top: 62px; left: 0; bottom: 0;
+    position: fixed; top: 62px; left: 0;
+    bottom: var(--bottom-bar-height, 0px);  /* adapts when TTS / share bar appear */
     overflow-y: auto; overflow-x: hidden;
     z-index: 50;
-    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1), bottom 0.2s ease;
     display: flex; flex-direction: column;
   }
   #sidebar.collapsed { transform: translateX(calc(-1 * var(--sidebar-w))); }
@@ -1712,6 +1713,7 @@ function updateShareBar() {
   if (n === 0) {
     shareBar.classList.remove('visible');
     ttsBar.style.bottom = '';
+    syncBottomBarHeight();
     return;
   }
   shareBar.classList.add('visible');
@@ -1723,6 +1725,19 @@ function updateShareBar() {
   $('share-count').textContent = `${n} ${noun[lang] || 'versículo(s)'} selecionado(s)`;
   // Show "Original" only when exactly 1 verse is selected
   $('share-original').style.display = n === 1 ? 'flex' : 'none';
+  syncBottomBarHeight();
+}
+
+// Adapt the sidebar's bottom edge so it never sits behind a visible TTS or share bar.
+// Heights chosen to clear the bars + a small breathing margin.
+function syncBottomBarHeight() {
+  const ttsVisible = ttsBar.classList.contains('visible');
+  const shareVisible = $('share-bar').classList.contains('visible');
+  let h = 0;
+  if (ttsVisible) h += 64;
+  if (shareVisible) h += 56;
+  if (h > 0) h += 8;  // breathing room
+  document.documentElement.style.setProperty('--bottom-bar-height', h + 'px');
 }
 
 function buildShareText() {
@@ -2338,6 +2353,7 @@ $('mobile-tts-trigger').addEventListener('click', () => {
     ttsBar.classList.remove('visible', 'full');
     btn.style.background = 'var(--accent)';
   }
+  syncBottomBarHeight();
 });
 
 // ──────────────────────────────────────────────
@@ -2471,6 +2487,7 @@ $('tts-toggle').addEventListener('click', () => {
     stopTTS();
     ttsBar.classList.remove('visible');
   }
+  syncBottomBarHeight();
 });
 
 $('tts-close').addEventListener('click', () => {
@@ -2478,6 +2495,7 @@ $('tts-close').addEventListener('click', () => {
   $('tts-toggle').classList.remove('active');
   stopTTS();
   ttsBar.classList.remove('visible');
+  syncBottomBarHeight();
 });
 
 ttsPlay.addEventListener('click', () => {
@@ -2781,6 +2799,29 @@ versesContainer.addEventListener('touchend', e => {
 // START
 // ──────────────────────────────────────────────
 init();
+
+// ──────────────────────────────────────────────
+// ANALYTICS BEACON — privacy-aware visit ping
+// ──────────────────────────────────────────────
+(function sendVisitPing() {
+  const { hostname } = window.location;
+  // Only count public origins, never local dev / LAN
+  const isLocal =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    /^\d+\.\d+\.\d+\.\d+$/.test(hostname) ||
+    hostname.endsWith('.local');
+  if (isLocal) return;
+  if (!window.HolyReadAPI || !window.HolyReadAPI.ping) return;
+  // Defer slightly so it never blocks first paint
+  setTimeout(() => {
+    window.HolyReadAPI.ping({
+      page: location.pathname,
+      referrer: document.referrer,
+      lang: (navigator.language || '').slice(0, 5),
+    });
+  }, 1500);
+})();
 </script>
 </body>
 </html>

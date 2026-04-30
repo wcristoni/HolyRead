@@ -13,3 +13,4 @@ backend/holyread_backend.egg-info/
 __pycache__/
 *.pyc
 .env
+backend/data/analytics/

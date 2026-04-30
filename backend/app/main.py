@@ -9,7 +9,7 @@ from slowapi.middleware import SlowAPIMiddleware
 
 from .config import ALLOWED_ORIGINS, ALLOWED_ORIGIN_REGEX
 from .limiter import limiter
-from .routes import bible, original
+from .routes import analytics, bible, original
 
 app = FastAPI(
     title="HolyRead API",
@@ -25,7 +25,7 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_origin_regex=ALLOWED_ORIGIN_REGEX,
     allow_credentials=False,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
     max_age=600,
 )
@@ -42,6 +42,7 @@ async def security_headers(request: Request, call_next):
 
 app.include_router(bible.router)
 app.include_router(original.router)
+app.include_router(analytics.router)
 
 
 @app.get("/")

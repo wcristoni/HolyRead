@@ -335,6 +335,15 @@ Documentação interativa em `/docs` (Swagger UI).
 
 ## Deploy
 
+### Estado atual
+
+| | URL | Origem |
+|---|---|---|
+| Frontend (V1) | https://wcristoni.github.io/HolyRead/ | GitHub Pages serve `index.html` na raiz, que faz redirect pra `frontend/` |
+| Backend (V1) | https://holyread-production.up.railway.app | Railway, Dockerfile em `backend/` |
+
+O `frontend/config.js` aponta automaticamente pro Railway em produção e pro `localhost:8000` em dev.
+
 ### A V1 não roda inteira no GitHub Pages
 
 > **GitHub Pages só serve estático.** Nosso backend é Python/FastAPI — precisa de um host com runtime. Pages só cobre o **frontend**, e mesmo assim depende do backend estar publicado em outra plataforma com `API_BASE` apontando pra ele.
@@ -389,7 +398,7 @@ A função detecta dev local automaticamente; em prod usa a URL do Railway.
 
 ### Passo 3 — Frontend onde quiser
 
-#### GitHub Pages (já configurado)
+#### GitHub Pages (já configurado, em uso hoje)
 
 ```bash
 git add frontend/config.js
@@ -397,7 +406,9 @@ git commit -m "chore: aponta frontend pro backend Railway"
 git push origin main
 ```
 
-O Pages servirá `frontend/index.html` em `https://wcristoni.github.io/HolyRead/`. (O Pages do repo está configurado pra servir o **raiz** do repo. Como o `index.html` está em `frontend/`, será necessário ou (a) mudar a config do Pages pra "/frontend" branch, ou (b) mover só os arquivos do frontend pra raiz numa branch dedicada `gh-pages`.)
+Como o Pages serve a **raiz** do repo e os arquivos do app estão em `frontend/`, mantemos um `index.html` mínimo na raiz que faz **meta-refresh** pra `./frontend/`. Resultado: o usuário acessa `https://wcristoni.github.io/HolyRead/` e é redirecionado transparentemente pra `https://wcristoni.github.io/HolyRead/frontend/`.
+
+Se preferir URL limpo (sem `/frontend/`), em **Settings → Pages** mudar Source para `main /frontend` e deletar o `index.html` da raiz.
 
 #### Render (estático)
 
@@ -415,9 +426,9 @@ services:
 
 Suba o conteúdo da pasta `frontend/` como site estático. Não esqueça do `config.js` apontando pro Railway.
 
-### Por que não publico V1 só no Pages
+### Por que o backend precisa estar no ar antes do frontend
 
-Se a gente publicar `frontend/` no Pages **antes** do backend Railway estar no ar, o usuário verá o app carregar mas com toast `"Erro ao carregar versão. Verifique conexão / backend."` — quebrado. Por isso o repo está commitado mas **não foi feito push da V1** até o backend ter um endereço fixo.
+Se o `frontend/` for publicado no Pages **antes** do backend estar respondendo na URL configurada, o app carrega mas mostra toast `"Erro ao carregar versão. Verifique conexão / backend."`. A sequência correta é: backend → testar `curl /healthz` → frontend.
 
 ---
 

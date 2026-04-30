@@ -522,22 +522,121 @@
   }
   #overlay.show { display: block; }
 
+  /* ── MOBILE SEARCH BAR (slide-down) ── */
+  #mobile-search-bar {
+    display: none;
+    position: fixed; top: 62px; left: 0; right: 0; z-index: 99;
+    background: #2B2872;
+    padding: 8px 12px;
+    gap: 8px; align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    animation: slideDown 0.2s ease;
+  }
+  #mobile-search-bar.open { display: flex; }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+  }
+  #mobile-search-bar input {
+    flex: 1; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px; padding: 8px 14px;
+    font-size: 0.9rem; color: #fff; outline: none;
+    font-family: 'Inter', sans-serif;
+  }
+  #mobile-search-bar input::placeholder { color: rgba(255,255,255,0.5); }
+  #mobile-search-bar input:focus { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.5); }
+  #mobile-search-close {
+    background: rgba(255,255,255,0.12); border: none; border-radius: 50%;
+    color: rgba(255,255,255,0.8); width: 30px; height: 30px;
+    cursor: pointer; font-size: 0.9rem; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
-    :root { --sidebar-w: 280px; }
+    :root { --sidebar-w: 85vw; }
+
+    /* Sidebar: full-height drawer */
+    #sidebar {
+      transform: translateX(calc(-1 * var(--sidebar-w)));
+      top: 62px; width: var(--sidebar-w); min-width: unset;
+    }
+    #sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.3); }
+
+    /* Main: always full width on mobile */
+    #main { margin-left: 0 !important; }
+
+    /* Topbar adjustments */
+    #logo .cross { display: none; }
+    #topbar-center { display: none; }
+    #tts-toggle { display: none; }          /* TTS via chapter-nav button instead */
+    #version-select { display: none; }
+    #version-mobile-btn { display: flex !important; }
+    #topbar { gap: 6px; padding: 0 10px; }
+
+    /* Chapter nav: stack title + horizontal scroll pills */
+    #chapter-nav {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 8px 12px 6px;
+      top: 62px;
+    }
+    #chapter-nav.search-open { top: 110px; }   /* pushed down when search bar open */
+    #chapter-nav h1 { font-size: 0.92rem; }
+
+    .chapter-pills {
+      flex-wrap: nowrap !important;
+      overflow-x: auto; overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      width: 100%; padding-bottom: 4px;
+      /* fade-out on right to hint scroll */
+      -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+      mask-image: linear-gradient(to right, black 80%, transparent 100%);
+    }
+    .chapter-pills::-webkit-scrollbar { display: none; }
+    .ch-pill { flex-shrink: 0; min-width: 36px; height: 32px; font-size: 0.78rem; }
+
+    /* Reading area */
+    #reading { padding: 16px 12px 120px; }
+    .verse-block { padding: 8px 8px; gap: 10px; }
+
+    /* Panels */
+    #search-panel { width: 100%; top: 62px; }
+    #search-panel.open.mobile-with-search { top: 110px; }
+    #font-panel { position: fixed; left: 10px; right: 10px; top: 70px; width: auto; }
+
+    /* Bars */
+    #tts-bar  { left: 0 !important; }
+    #share-bar { left: 0 !important; }
+    .share-btn span.share-label { display: none; }
+    #tts-voice-wrap { display: none; }
+
+    /* Mobile TTS floating button inside chapter-nav */
+    #mobile-tts-btn { display: flex !important; }
+  }
+
+  /* Mobile landscape: topbar shows search */
+  @media (max-width: 900px) and (orientation: landscape) {
+    :root { --sidebar-w: 260px; }
     #sidebar { transform: translateX(calc(-1 * var(--sidebar-w))); top: 62px; }
     #sidebar.mobile-open { transform: translateX(0); }
     #main { margin-left: 0 !important; }
-    #tts-bar { left: 0 !important; }
-    #share-bar { left: 0 !important; }
-    #chapter-nav { padding: 8px 12px; top: 62px; }
-    #reading { padding: 20px 16px 120px; }
-    #topbar-center { display: none; }
-    #search-panel { width: 100%; top: 62px; }
-    #font-panel { right: auto; left: 0; top: 58px; }
-    .share-btn span.share-label { display: none; }
-    #tts-voice-wrap { display: none; }
+    #topbar-center { display: flex; max-width: 300px; }
+    #chapter-nav { top: 62px; flex-direction: row; flex-wrap: nowrap; }
+    .chapter-pills { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .chapter-pills::-webkit-scrollbar { display: none; }
+    .ch-pill { flex-shrink: 0; }
+    #version-select { display: block; max-width: 75px; }
+    #version-mobile-btn { display: none !important; }
+    #tts-toggle { display: flex; }
+    #logo .cross { display: flex; }
+    #font-panel { position: absolute; left: auto; right: 0; top: 60px; width: 268px; }
   }
+
   @media (min-width: 1200px) {
     #reading { padding: 40px 40px 100px; }
   }
@@ -644,10 +743,18 @@
         <option value="fr_apee">Alliance Permanente</option>
       </optgroup>
     </select>
+    <!-- Mobile: compact version button (shown on mobile, hidden on desktop) -->
+    <button class="icon-btn" id="version-mobile-btn" title="Versão" style="display:none;font-size:0.75rem;font-weight:700;letter-spacing:0.03em">NVI</button>
     <button class="icon-btn" id="tts-toggle" title="Leitura em voz alta">🔊</button>
     <button class="icon-btn" id="theme-btn" title="Alternar tema">🌙</button>
-    <button class="icon-btn mobile-search-btn" id="mobile-search-btn" title="Buscar" style="display:none">🔍</button>
+    <button class="icon-btn" id="mobile-search-btn" title="Buscar" style="display:none">🔍</button>
   </div>
+</div>
+
+<!-- MOBILE SEARCH BAR -->
+<div id="mobile-search-bar">
+  <input type="text" id="mobile-search-input" placeholder='🔍  Buscar versículo ou palavra...' autocomplete="off">
+  <button id="mobile-search-close">✕</button>
 </div>
 
 <!-- OVERLAY (mobile sidebar) -->
@@ -670,7 +777,13 @@
   <main id="main">
     <!-- CHAPTER NAV -->
     <div id="chapter-nav">
-      <h1 id="book-title">—</h1>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px">
+        <h1 id="book-title" style="flex:1;min-width:0">—</h1>
+        <!-- Mobile-only action buttons inside chapter-nav -->
+        <div id="mobile-tts-btn" style="display:none;gap:6px;flex-shrink:0;align-items:center">
+          <button class="ch-pill" id="mobile-tts-trigger" title="Ouvir" style="min-width:36px;background:var(--accent);color:#fff;border-color:var(--accent)">🔊</button>
+        </div>
+      </div>
       <div class="chapter-pills" id="chapter-pills"></div>
     </div>
 
@@ -853,6 +966,7 @@ async function init() {
   applyTheme();
   applyFontSize();
   applyReadingFont();
+  syncVersionMobileBtn();
 
   const data = await loadVersion(state.version);
   state.bibleData = data;
@@ -1162,6 +1276,7 @@ $('share-facebook').addEventListener('click', () => doShare(() => {
 // ──────────────────────────────────────────────
 $('version-select').addEventListener('change', async e => {
   state.version = e.target.value;
+  syncVersionMobileBtn();
   savePreferences();
   loading.classList.remove('hidden');
   const data = await loadVersion(state.version);
@@ -1335,16 +1450,98 @@ async function navigateToVerse(bookIdx, chapterIdx, verseIdx) {
   }, 100);
 }
 
-// Mobile search button
-$('mobile-search-btn').addEventListener('click', () => {
-  searchBox.closest('#topbar-center') && (searchBox.closest('#topbar-center').style.display = 'flex');
-  searchBox.focus();
+// ──────────────────────────────────────────────
+// MOBILE LAYOUT
+// ──────────────────────────────────────────────
+function isMobile() { return window.innerWidth < 768; }
+function isLandscape() { return window.innerWidth <= 900 && window.innerWidth > window.innerHeight; }
+
+// Sync the compact version button text
+function syncVersionMobileBtn() {
+  const btn = $('version-mobile-btn');
+  if (btn) btn.textContent = VERSION_LABEL[state.version];
+}
+
+// Version mobile button opens the hidden select
+$('version-mobile-btn').addEventListener('click', () => {
+  // Briefly show the select, trigger it, then hide again
+  const sel = $('version-select');
+  sel.style.display = 'block';
+  sel.style.position = 'fixed';
+  sel.style.opacity = '0';
+  sel.style.top = '62px';
+  sel.style.right = '0';
+  sel.style.zIndex = '9999';
+  sel.focus();
+  sel.click();
+  setTimeout(() => {
+    if (isMobile()) {
+      sel.style.display = 'none';
+      sel.style.position = '';
+      sel.style.opacity = '';
+      sel.style.top = '';
+      sel.style.right = '';
+    }
+  }, 200);
 });
 
-// Show mobile search btn on small screens
+// Mobile search bar
+const mobileSearchBar = $('mobile-search-bar');
+const mobileSearchInput = $('mobile-search-input');
+
+$('mobile-search-btn').addEventListener('click', () => {
+  mobileSearchBar.classList.add('open');
+  $('chapter-nav').classList.add('search-open');
+  searchPanel.classList.add('mobile-with-search');
+  mobileSearchInput.focus();
+});
+
+$('mobile-search-close').addEventListener('click', () => {
+  mobileSearchBar.classList.remove('open');
+  $('chapter-nav').classList.remove('search-open');
+  searchPanel.classList.remove('mobile-with-search');
+  mobileSearchInput.value = '';
+  closeSearch();
+});
+
+let mobileSearchTimeout;
+mobileSearchInput.addEventListener('input', e => {
+  clearTimeout(mobileSearchTimeout);
+  const q = e.target.value.trim();
+  if (!q) { closeSearch(); return; }
+  mobileSearchTimeout = setTimeout(() => performSearch(q), 350);
+});
+
+mobileSearchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    mobileSearchBar.classList.remove('open');
+    $('chapter-nav').classList.remove('search-open');
+    mobileSearchInput.value = '';
+    closeSearch();
+  }
+});
+
+// Mobile TTS button in chapter nav
+$('mobile-tts-trigger').addEventListener('click', () => {
+  if (state.bookIdx === null) { showToast('Selecione um livro primeiro'); return; }
+  state.ttsActive = !state.ttsActive;
+  const btn = $('mobile-tts-trigger');
+  if (state.ttsActive) {
+    ttsBar.classList.add('visible', 'full');
+    btn.style.background = 'var(--accent2)';
+    updateTTSBar(); loadVoices();
+  } else {
+    stopTTS();
+    ttsBar.classList.remove('visible', 'full');
+    btn.style.background = 'var(--accent)';
+  }
+});
+
 function checkMobile() {
-  const isMobile = window.innerWidth < 768;
-  $('mobile-search-btn').style.display = isMobile ? 'flex' : 'none';
+  const mobile = isMobile();
+  $('mobile-search-btn').style.display = mobile ? 'flex' : 'none';
+  // On resize, re-sync
+  syncVersionMobileBtn();
 }
 window.addEventListener('resize', checkMobile);
 checkMobile();

@@ -733,6 +733,12 @@
     #mobile-tts-btn { display: flex !important; }
   }
 
+  /* Tablet / narrow desktop: native version select gets cramped — use floating sheet */
+  @media (max-width: 1024px) {
+    #version-select { display: none !important; }
+    #version-mobile-btn { display: flex !important; }
+  }
+
   /* Mobile landscape: topbar shows search */
   @media (max-width: 900px) and (orientation: landscape) {
     :root { --sidebar-w: 260px; }

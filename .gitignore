@@ -5,6 +5,7 @@ grafo_reis_israel.html
 preview.html
 reis_israel_grafo.json
 *.log
+implantacao-producao.md
 backend/.venv/
 backend/data/raw/
 backend/data/glosses/_cache/

@@ -591,6 +591,74 @@
   #chapter-mobile-btn:hover { background: var(--accent2); border-color: var(--accent2); color: #fff; }
   #chapter-mobile-btn .arrow { font-size: 0.65rem; opacity: 0.85; }
 
+  /* ── CONFIRM DIALOG (auto-advance prompt) ── */
+  #confirm-dialog {
+    display: none; position: fixed; inset: 0; z-index: 200;
+  }
+  #confirm-dialog.open { display: block; }
+  .dialog-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(30,27,75,0.6);
+    backdrop-filter: blur(3px);
+    animation: sheetFade 0.2s ease;
+  }
+  .dialog-content {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface); border-radius: 16px;
+    padding: 22px 22px 18px;
+    max-width: 380px; width: calc(100% - 40px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.32);
+    animation: dialogIn 0.22s cubic-bezier(.4,0,.2,1);
+  }
+  @keyframes dialogIn {
+    from { opacity: 0; transform: translate(-50%, -45%) scale(0.94); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .dialog-icon {
+    font-size: 2rem; text-align: center; margin-bottom: 8px;
+    color: var(--accent);
+  }
+  .dialog-content h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.05rem; font-weight: 700; color: var(--text);
+    text-align: center;
+    margin-bottom: 8px; letter-spacing: -0.01em;
+  }
+  .dialog-content p {
+    font-size: 0.88rem; color: var(--text2);
+    line-height: 1.55; text-align: center;
+    margin-bottom: 16px;
+  }
+  .dialog-remember {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; margin-bottom: 14px;
+    background: var(--surface2); border-radius: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .dialog-remember input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+  .dialog-remember span { font-size: 0.82rem; color: var(--text2); }
+  .dialog-actions {
+    display: flex; gap: 8px;
+  }
+  .dialog-btn {
+    flex: 1; border: none; padding: 11px 14px;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s, transform 0.05s;
+  }
+  .dialog-btn.primary {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 3px 12px rgba(91,80,200,0.35);
+  }
+  .dialog-btn.primary:hover { background: var(--accent2); }
+  .dialog-btn.primary:active { transform: scale(0.98); }
+  .dialog-btn.secondary {
+    background: var(--surface2); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .dialog-btn.secondary:hover { background: var(--accent-bg); color: var(--text); }
+
   /* ── VERSION SHEET (mobile version/language picker) ── */
   #version-sheet {
     display: none; position: fixed; inset: 0; z-index: 110;
@@ -998,6 +1066,24 @@
   </div>
 </div>
 
+<!-- CONFIRM DIALOG (auto-advance / restart) -->
+<div id="confirm-dialog">
+  <div class="dialog-backdrop"></div>
+  <div class="dialog-content">
+    <div class="dialog-icon" id="confirm-icon">📖</div>
+    <h3 id="confirm-title">Continuar leitura?</h3>
+    <p id="confirm-message">—</p>
+    <label class="dialog-remember">
+      <input type="checkbox" id="confirm-remember" checked>
+      <span>Lembrar minha resposta</span>
+    </label>
+    <div class="dialog-actions">
+      <button class="dialog-btn secondary" id="confirm-no">Parar</button>
+      <button class="dialog-btn primary" id="confirm-yes">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -1065,6 +1151,8 @@ let state = {
   ttsVerseIdx: 0,
   ttsUtterance: null,
   wakeLock: null,
+  autoAdvance: null,
+  autoRestart: null,
   sidebarOpen: true,
   searchOpen: false,
   selectedVerses: new Set(),
@@ -1142,6 +1230,8 @@ function savePreferences() {
     theme: state.theme,
     fontSize: state.fontSize,
     fontKey: state.fontKey,
+    autoAdvance: state.autoAdvance,
+    autoRestart: state.autoRestart,
   }));
 }
 
@@ -1154,6 +1244,8 @@ function loadPreferences() {
     if (p.theme) state.theme = p.theme;
     if (p.fontSize) state.fontSize = p.fontSize;
     if (p.fontKey) state.fontKey = p.fontKey;
+    if (p.autoAdvance !== undefined) state.autoAdvance = p.autoAdvance;
+    if (p.autoRestart !== undefined) state.autoRestart = p.autoRestart;
     $('version-select').value = state.version;
     $('font-slider').value = state.fontSize;
     updateFontPreview();
@@ -1941,6 +2033,106 @@ function getVerses() {
 }
 
 // ──────────────────────────────────────────────
+// CONFIRM DIALOG (promise-based)
+// ──────────────────────────────────────────────
+const confirmDialog = $('confirm-dialog');
+function askDialog({ title, message, icon = '📖', yesLabel = 'Continuar', noLabel = 'Parar' }) {
+  return new Promise(resolve => {
+    $('confirm-icon').textContent = icon;
+    $('confirm-title').textContent = title;
+    $('confirm-message').textContent = message;
+    $('confirm-yes').textContent = yesLabel;
+    $('confirm-no').textContent = noLabel;
+    $('confirm-remember').checked = true;
+    confirmDialog.classList.add('open');
+    const finish = (answer) => {
+      const remember = $('confirm-remember').checked;
+      $('confirm-yes').removeEventListener('click', onYes);
+      $('confirm-no').removeEventListener('click', onNo);
+      confirmDialog.classList.remove('open');
+      resolve({ answer, remember });
+    };
+    const onYes = () => finish(true);
+    const onNo  = () => finish(false);
+    $('confirm-yes').addEventListener('click', onYes);
+    $('confirm-no').addEventListener('click', onNo);
+  });
+}
+
+// ──────────────────────────────────────────────
+// AUTO-ADVANCE — next chapter / next book / restart bible
+// ──────────────────────────────────────────────
+function getNextChapterLocation() {
+  const book = state.bibleData[state.bookIdx];
+  if (state.chapterIdx + 1 < book.chapters.length) {
+    return { bookIdx: state.bookIdx, chapterIdx: state.chapterIdx + 1, isNewBook: false, isRestart: false };
+  }
+  if (state.bookIdx + 1 < state.bibleData.length) {
+    return { bookIdx: state.bookIdx + 1, chapterIdx: 0, isNewBook: true, isRestart: false };
+  }
+  return { bookIdx: 0, chapterIdx: 0, isNewBook: true, isRestart: true };
+}
+
+async function handleChapterEnd() {
+  state.ttsPlaying = false;
+  ttsPlay.textContent = '▶';
+  state.ttsVerseIdx = 0;
+  highlightTTSVerse(-1);
+
+  const next = getNextChapterLocation();
+  const names = getBookNames();
+  const nextLabel = `${names[next.bookIdx]} ${next.chapterIdx + 1}`;
+
+  let shouldAdvance;
+  if (next.isRestart) {
+    if (state.autoRestart === true)       shouldAdvance = true;
+    else if (state.autoRestart === false) shouldAdvance = false;
+    else {
+      const { answer, remember } = await askDialog({
+        icon: '🎉',
+        title: 'Bíblia inteira lida!',
+        message: `Deseja recomeçar do início? (${nextLabel})`,
+        yesLabel: 'Recomeçar',
+        noLabel: 'Encerrar',
+      });
+      if (remember) { state.autoRestart = answer; savePreferences(); }
+      shouldAdvance = answer;
+    }
+  } else {
+    if (state.autoAdvance === true)       shouldAdvance = true;
+    else if (state.autoAdvance === false) shouldAdvance = false;
+    else {
+      const { answer, remember } = await askDialog({
+        icon: '📖',
+        title: 'Continuar leitura?',
+        message: `Avançar para ${nextLabel}?`,
+        yesLabel: 'Continuar',
+        noLabel: 'Parar',
+      });
+      if (remember) { state.autoAdvance = answer; savePreferences(); }
+      shouldAdvance = answer;
+    }
+  }
+
+  if (!shouldAdvance) {
+    releaseWakeLock();
+    updateTTSProgress(0, getVerses().length);
+    return;
+  }
+
+  // Navigate to next chapter and resume TTS automatically
+  state.bookIdx = next.bookIdx;
+  state.chapterIdx = next.chapterIdx;
+  state.ttsVerseIdx = 0;
+  savePreferences();
+  renderBookList($('book-filter').value);
+  renderChapterPills(state.bookIdx);
+  await renderChapter(state.bookIdx, state.chapterIdx);
+  // renderChapter() called stopTTS(); restart with a small gap so the new utterance is queued cleanly
+  setTimeout(() => { if (state.ttsActive) startTTS(); }, 400);
+}
+
+// ──────────────────────────────────────────────
 // SCREEN WAKE LOCK — keep screen on during TTS
 // ──────────────────────────────────────────────
 async function acquireWakeLock() {
@@ -1995,12 +2187,7 @@ function startTTS() {
     if (state.ttsVerseIdx < verses.length) {
       setTimeout(() => startTTS(), 250);
     } else {
-      state.ttsPlaying = false;
-      ttsPlay.textContent = '▶';
-      state.ttsVerseIdx = 0;
-      updateTTSProgress(0, verses.length);
-      highlightTTSVerse(-1);
-      releaseWakeLock();
+      handleChapterEnd();
     }
   };
 

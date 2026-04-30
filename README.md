@@ -515,3 +515,4 @@ Os textos utilizados são versões de domínio público ou de uso livre para fin
 
 *HolyRead é o módulo de leitura do ecossistema HolyPleiiiz — estimulando pessoas a lerem a Bíblia todos os dias.*
 # HolyRead
+# HolyRead
